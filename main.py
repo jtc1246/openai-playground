@@ -355,6 +355,64 @@ def add_models(base_url:str, api_key:str, models_:list[str] = [], prefix:str='',
     raise Exception()
 
 
+def add_ollama_model(base_url:str, api_key:str, model_name:str, new_name: str=None) -> None:
+    if(not base_url.startswith('http://') and not base_url.startswith('https://')):
+        raise ValueError('Invalid url. Url should start with http:// or https://')
+    if(base_url[-1] == '/'):
+        base_url = base_url[:-1]
+    if(model_name == '' or new_name == ''):
+        raise ValueError('Model name cannot be empty.')
+    if(new_name == None):
+        new_name = model_name
+    if(model_name.replace(' ', '').replace('\n', '') == '' or new_name.replace(' ', '').replace('\n', '') == ''):
+        raise ValueError('Model name cannot be empty.')
+    if(new_name in models):
+        raise ValueError(f'Model name {new_name} already exists.')
+    all_models = get_models_from_url_ollama(base_url, api_key)
+    if(model_name not in all_models):
+        raise ValueError(f'No model called {model_name} from {base_url}. Available models: {all_models}')
+    models.append(new_name)
+    model_info[new_name] = (base_url, api_key, model_name, True)
+    print(f'Model {new_name} added successfully.')
+
+
+def add_ollama_models(base_url:str, api_key:str, models_:list[str] = [], prefix:str='', postfix:str='') -> None:
+    if(not base_url.startswith('http://') and not base_url.startswith('https://')):
+        raise ValueError('Invalid url. Url should start with http:// or https://')
+    if(base_url[-1] == '/'):
+        base_url = base_url[:-1]
+    # first check the model name legality
+    if(len(set(models_)) != len(models_)):
+        raise ValueError('Have duplicate model names.')
+    for model_name in models_:
+        if(model_name == ''):
+            raise ValueError('Model name cannot be empty.')
+        if(model_name.replace(' ', '').replace('\n', '') == ''):
+            raise ValueError('Model name cannot be empty.')
+        if((prefix + model_name + postfix) in models):
+            raise ValueError(f'Model name {prefix + model_name + postfix} already exists.')
+    all_models = get_models_from_url_ollama(base_url, api_key)
+    if(len(models_) ==0):
+        models_ = all_models
+    for model_name in models_:
+        if((prefix + model_name + postfix) in models):
+            raise ValueError(f'Model name {prefix + model_name + postfix} already exists.')
+    added_models = []
+    missing_models = []
+    for m in models_:
+        if(m in all_models):
+            added_models.append(prefix + m + postfix)
+            models.append(prefix + m + postfix)
+            model_info[prefix + m + postfix] = (base_url, api_key, m, True)
+        else:
+            missing_models.append(m)
+    if(len(missing_models) ==0):
+        print(f'All models added successfully. {added_models}')
+        return
+    if(len(added_models) > 0):
+        print(f'These models added successfully: {added_models}')
+    print(f'These models not found: {missing_models} from {base_url}. Available models: {all_models}')
+    raise Exception()
 
 
 
@@ -366,10 +424,11 @@ def start_server_async() -> None:
 if __name__ == '__main__':
     create_server(9025, './database.db', './log.txt')
     add_model('http://jtc1246.com:9002/v1/',COHERE_API_KEY,'command-r-plus','cohere')
-    add_models('https://api.openai.com/v1/', OPENAI_API_KEY, ['gpt-3.5-turbo','gpt-4'], prefix='openai-')
-    # add_model('','','jtc')
-    # add_model('','','gpt-4')
-    # add_model('','','gpt-3.5-turbo')
+    # add_models('https://api.openai.com/v1/', OPENAI_API_KEY, ['gpt-3.5-turbo','gpt-4'], prefix='openai-')
+    add_model('https://api.openai.com/v1/', OPENAI_API_KEY, 'gpt-4-turbo-2024-04-09', 'openai-gpt-4')
+    add_model('https://api.openai.com/v1/', OPENAI_API_KEY, 'gpt-4o-2024-05-13', 'openai-gpt-4o')
+    add_model('https://api.openai.com/v1/', OPENAI_API_KEY, 'gpt-3.5-turbo-0125', 'openai-gpt-3.5')
+    add_ollama_models('http://127.0.0.1:11434', 'ollama')
     start_server_async()
     # while True:
     #     sleep(10)
