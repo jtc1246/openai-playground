@@ -3,7 +3,8 @@ from myHttp import http
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from time import time, sleep
 from _thread import start_new_thread
-from utils import endode_js, encode_engines, encode_v1_models
+from utils import endode_js, encode_engines, encode_v1_models,\
+                  get_models_from_url, get_models_from_url_ollama
 from mySecrets import hexToStr
 import json
 from keys import OPENAI_API_KEY, COHERE_API_KEY, OLLAMA_API_KEY
@@ -29,7 +30,7 @@ def init():
 
 
 models = []
-model_info = {} # {name: (base_url, api_key, origin_name)}
+model_info = {} # {name: (base_url, api_key, origin_name, is_ollama:bool)}
 
 
 answer = '''要理解Transfer-Encoding: chunked的HTTP请求如何在TCP层面处理，有必要了解HTTP协议与TCP协议的关系。HTTP（超文本传输协议）运行在TCP（传输控制协议）之上，HTTP的请求和响应数据都通过TCP连接传输。
@@ -295,6 +296,10 @@ def create_server(port:int, database_path:str, log_path:str) -> None:
     PORT = port
 
 def add_model(base_url:str, api_key:str, model_name:str, new_name: str=None) -> None:
+    if(not base_url.startswith('http://') and not base_url.startswith('https://')):
+        raise ValueError('Invalid url. Url should start with http:// or https://')
+    if(base_url[-1] == '/'):
+        base_url = base_url[:-1]
     if(model_name == '' or new_name == ''):
         raise ValueError('Model name cannot be empty.')
     if(new_name == None):
@@ -303,11 +308,54 @@ def add_model(base_url:str, api_key:str, model_name:str, new_name: str=None) -> 
         raise ValueError('Model name cannot be empty.')
     if(new_name in models):
         raise ValueError(f'Model name {new_name} already exists.')
+    all_models = get_models_from_url(base_url, api_key)
+    if(model_name not in all_models):
+        raise ValueError(f'No model called {model_name} from {base_url}. Available models: {all_models}')
     models.append(new_name)
-    pass
+    model_info[new_name] = (base_url, api_key, model_name, False)
+    print(f'Model {new_name} added successfully.')
 
-def add_models(base_url:str, api_key:str, models:list[str] = [], prefix:str='', postfix:str='') -> None:
-    pass
+
+def add_models(base_url:str, api_key:str, models_:list[str] = [], prefix:str='', postfix:str='') -> None:
+    if(not base_url.startswith('http://') and not base_url.startswith('https://')):
+        raise ValueError('Invalid url. Url should start with http:// or https://')
+    if(base_url[-1] == '/'):
+        base_url = base_url[:-1]
+    # first check the model name legality
+    if(len(set(models_)) != len(models_)):
+        raise ValueError('Have duplicate model names.')
+    for model_name in models_:
+        if(model_name == ''):
+            raise ValueError('Model name cannot be empty.')
+        if(model_name.replace(' ', '').replace('\n', '') == ''):
+            raise ValueError('Model name cannot be empty.')
+        if((prefix + model_name + postfix) in models):
+            raise ValueError(f'Model name {prefix + model_name + postfix} already exists.')
+    all_models = get_models_from_url(base_url, api_key)
+    if(len(models_) ==0):
+        models_ = all_models
+    for model_name in models_:
+        if((prefix + model_name + postfix) in models):
+            raise ValueError(f'Model name {prefix + model_name + postfix} already exists.')
+    added_models = []
+    missing_models = []
+    for m in models_:
+        if(m in all_models):
+            added_models.append(prefix + m + postfix)
+            models.append(prefix + m + postfix)
+            model_info[prefix + m + postfix] = (base_url, api_key, m, False)
+        else:
+            missing_models.append(m)
+    if(len(missing_models) ==0):
+        print(f'All models added successfully. {added_models}')
+        return
+    if(len(added_models) > 0):
+        print(f'These models added successfully: {added_models}')
+    print(f'These models not found: {missing_models} from {base_url}. Available models: {all_models}')
+    raise Exception()
+
+
+
 
 
 def start_server_async() -> None:
@@ -317,10 +365,11 @@ def start_server_async() -> None:
 
 if __name__ == '__main__':
     create_server(9025, './database.db', './log.txt')
-    add_model('','','jtc')
+    add_model('http://jtc1246.com:9002/v1/',COHERE_API_KEY,'command-r-plus','cohere')
+    add_models('https://api.openai.com/v1/', OPENAI_API_KEY, ['gpt-3.5-turbo','gpt-4'], prefix='openai-')
     # add_model('','','jtc')
-    add_model('','','gpt-4')
-    add_model('','','gpt-3.5-turbo')
+    # add_model('','','gpt-4')
+    # add_model('','','gpt-3.5-turbo')
     start_server_async()
-    while True:
-        sleep(10)
+    # while True:
+    #     sleep(10)

@@ -2,7 +2,8 @@ import json
 from myHttp import http
 from keys import OPENAI_API_KEY, COHERE_API_KEY, OLLAMA_API_KEY
 
-__all__ = ['endode_js', 'encode_engines', 'encode_v1_models']
+__all__ = ['endode_js', 'encode_engines', 'encode_v1_models',
+           'get_models_from_url', 'get_models_from_url_ollama']
 
 
 def endode_js(js: str):
@@ -59,7 +60,10 @@ def encode_v1_models(models: list[str]) -> str:
 
 
 def extract_models(data: str) -> list[str]:
-    block_list = ['whisper-','tts-','dall-e','embedding-','baggage-','davinci-','ada-']
+    '''
+    extract the models from json, if it's from openai, will delete like whisper and tts
+    '''
+    block_list = ['whisper-','tts-','dall-e','embedding-','babbage-','davinci-','ada-']
     
     try:
         if (type(data) == str):
@@ -90,9 +94,33 @@ def extract_models(data: str) -> list[str]:
         raise TypeError('Invalid response from server')
 
 
+def extract_models_ollama(data: str) -> list[str]:
+    '''
+    extract models from json, for ollama
+    '''
+    try:
+        if (type(data) == str):
+            data = json.loads(data)
+        data2 = data['models']
+        results = []
+        has_gpt = False
+        for info in data2:
+            name = info['model']
+            assert (type(name) == str)
+            if (str.find(name, 'gpt') >= 0):
+                has_gpt = True
+            results.append(name)
+        return results
+    except:
+        print(data)
+        raise TypeError('Invalid response from server')
+
+
 def get_models_from_url(base_url: str, api_key: str):
     '''
-    url: not ends with /
+    url: not ends with /, usually should ends with /v1
+    
+    will not handle whether api key is correct here, if server doesn't do verification on /v1/models
     '''
     url = base_url + '/models'
     header = {
@@ -111,9 +139,32 @@ def get_models_from_url(base_url: str, api_key: str):
     return extract_models(resp['text'])
 
 
+def get_models_from_url_ollama(base_url: str, api_key: str):
+    '''
+    url: on default should end with :11434, no any other path
+    
+    just ends with port number (if you change the default port, port can be different)
+    '''
+    url = base_url + '/api/tags'
+    header = {
+        'Authorization': f'Bearer {api_key}',
+        'Content-Type': 'application/json',
+    }
+    resp = http(url, Header=header)
+    if (resp['status'] < 0):
+        raise ConnectionError(f"Can't connect to {base_url}")
+    if (resp['status'] > 0):
+        raise ConnectionError(f"Invalid response from server, " + str(resp['extra']))
+    if(resp['code'] != 200):
+        print(f'Error: status code {resp["code"]}')
+        print(resp['text'])
+        raise Exception("Invalid api key, or other server error.")
+    return extract_models_ollama(resp['text'])
+
+
+
 if __name__ == '__main__':
     print(get_models_from_url('https://api.openai.com/v1', OPENAI_API_KEY))
-    # a=http('http://jtc1246.com:9002/v1/models')
-    # print(a)
-    print(get_models_from_url('http://jtc1246.com:9002/v1', COHERE_API_KEY+'ewg'))
+    print(get_models_from_url('http://jtc1246.com:9002/v1', COHERE_API_KEY))
+    print(get_models_from_url_ollama('http://127.0.0.1:11434', 'ollama'))
     
