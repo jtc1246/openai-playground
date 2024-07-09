@@ -6,6 +6,7 @@ from _thread import start_new_thread
 from utils import endode_js, encode_engines, encode_v1_models
 from mySecrets import hexToStr
 import json
+from keys import OPENAI_API_KEY, COHERE_API_KEY, OLLAMA_API_KEY
 
 __all__ = ['create_server']
 
