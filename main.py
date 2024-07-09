@@ -4,9 +4,13 @@ from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from time import time, sleep
 from _thread import start_new_thread
 from utils import endode_js, encode_engines, encode_v1_models,\
-                  get_models_from_url, get_models_from_url_ollama
+                  get_models_from_url, get_models_from_url_ollama,\
+                  get_hash, handle_stream_data
 from mySecrets import hexToStr
 import json
+import requests
+from random import randint
+from queue import Queue
 from keys import OPENAI_API_KEY, COHERE_API_KEY, OLLAMA_API_KEY, ZHIPU_API_KEY, KIMI_API_KEY, DOUBAO_API_KEY
 
 __all__ = ['create_server', 'start_server_async',
@@ -214,6 +218,7 @@ class Request(BaseHTTPRequestHandler):
             return
         body = self.rfile.read(int(self.headers['Content-Length']))
         body = json.loads(body)
+        print(body)
         model_name = body['model']
         if(model_name not in models):
             self.send_response(404)
@@ -234,7 +239,69 @@ class Request(BaseHTTPRequestHandler):
             self.wfile.write(data)
             self.wfile.flush()
             return
-        print('stream')
+        base_url = model_info[model_name][0]
+        api_key = model_info[model_name][1]
+        origin_name = model_info[model_name][2]
+        is_ollama = model_info[model_name][3]
+        if(is_ollama):
+            url = base_url + '/v1/chat/completions'
+        else:
+            url = base_url + '/chat/completions'
+        body['model'] = origin_name
+        for i in range(0, len(body['messages'])):
+            # print(body['messages'])
+            # print(body['messages'][i])
+            # print(body['messages'][i]['content'])
+            body['messages'][i]['content'] = body['messages'][i]['content'][0]['text']
+        body = json.dumps(body, ensure_ascii=False).encode('utf-8')
+        header = {
+            'Authorization': f'Bearer {api_key}',
+            'Content-Type': 'application/json',
+            'Content-Length': str(len(body)),
+        }
+        stream_id = get_hash(str(time()) + str(randint(0, 10000000000)) + str(body))
+        resp = requests.post(url, headers=header, data=body, stream=True)
+        if(resp.status_code == 200):
+            # use stream here
+            client_queue = Queue() # sent to client
+            log_queue = Queue() # for logs
+            start_new_thread(handle_stream_data, (self, client_queue))
+            for chunk in resp.iter_content(chunk_size=None):
+                print(chunk)
+                client_queue.put(chunk)
+                log_queue.put(chunk)
+            print("stream ended")
+            client_queue.put(False)
+            log_queue.put(False)
+            return
+        else:
+            # error handling, don't use stream
+            s = resp.status_code
+            data = resp.content
+            try:
+                data = data.decode('utf-8')
+            except:
+                data = str(data)[2:-1]
+            msg = f'Error: http status {s}. {data}'
+            data = {
+                "error": {
+                    "message": msg, 
+                    "type": "invalid_request_error",
+                    "param": None,
+                    "code": None
+                }
+            }
+            self.send_response(404)
+            data = json.dumps(data, ensure_ascii=False).encode('utf-8')
+            self.send_header('Content-Length', len(data))
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Connection', 'keep-alive')
+            self.end_headers()
+            self.wfile.write(data)
+            self.wfile.flush()
+            return
+        # print('stream')
         self.send_response(200)
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Content-Type', 'text/event-stream; charset=utf-8')

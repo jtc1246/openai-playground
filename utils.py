@@ -1,9 +1,12 @@
 import json
 from myHttp import http
 from keys import OPENAI_API_KEY, COHERE_API_KEY, OLLAMA_API_KEY
+from hashlib import sha256
+from queue import Queue
 
 __all__ = ['endode_js', 'encode_engines', 'encode_v1_models',
-           'get_models_from_url', 'get_models_from_url_ollama']
+           'get_models_from_url', 'get_models_from_url_ollama',
+           'get_hash', "handle_stream_data"]
 
 
 def endode_js(js: str):
@@ -173,6 +176,28 @@ def get_models_from_url_ollama(base_url: str, api_key: str):
         raise Exception("Invalid api key, or other server error.")
     return extract_models_ollama(resp['text'])
 
+
+def get_hash(s: str) -> str:
+    return sha256(s.encode()).hexdigest()
+
+
+def handle_stream_data(request_obj, data_queue:Queue):
+    request_obj.send_response(200)
+    request_obj.send_header('Access-Control-Allow-Origin', '*')
+    request_obj.send_header('Content-Type', 'text/event-stream; charset=utf-8')
+    request_obj.send_header('Transfer-Encoding', 'chunked')
+    request_obj.send_header('Connection', 'keep-alive')
+    request_obj.end_headers()
+    while True:
+        data = data_queue.get()
+        if(data == False):
+            break
+        request_obj.wfile.write(f"{len(data):X}".encode('utf-8'))
+        request_obj.wfile.write(b'\r\n')
+        request_obj.wfile.write(data)
+        request_obj.wfile.write(b'\r\n')
+    request_obj.wfile.write(b'0\r\n\r\n')
+    request_obj.wfile.flush()
 
 
 if __name__ == '__main__':
