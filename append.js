@@ -35,7 +35,12 @@ function login() {
     while (correct === false) {
         var request = new XMLHttpRequest();
         request.open('GET', url + stringToHex(pw), false);
-        request.send();
+        try{
+            request.send();
+        } catch (e) {
+            alert("Network error, please refresh the page and try again. " + e);
+            throw new Error();
+        }
         if (request.status === 200 || request.status === 202) {
             correct = true;
             jtc_password = stringToHex(pw);

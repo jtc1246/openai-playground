@@ -7,11 +7,14 @@ from utils import endode_js, encode_engines, encode_v1_models
 from mySecrets import hexToStr
 import json
 
+__all__ = ['create_server']
+
 PASSWORD = 'jtc1246'
 
 JS_URL = 'https://openaiapi-site.azureedge.net/public-assets/d/ddd16bc977/static/js/main.600c2350.js'
 
 JS_CONTENT = ''
+PORT = 0
 
 def init():
     global JS_CONTENT
@@ -20,9 +23,12 @@ def init():
         print('Failed to fetch JS file')
         raise Exception('Failed to fetch JS file')
     JS_CONTENT = tmp['text']
+    # currently don't need to encode according model list, so just pre generate
+    JS_CONTENT = endode_js(JS_CONTENT)
 
 
-models = ['jtc', 'gpt-3.5-turbo', 'gpt-4']
+models = []
+model_info = {} # {name: (base_url, api_key, origin_name)}
 
 
 answer = '''要理解Transfer-Encoding: chunked的HTTP请求如何在TCP层面处理，有必要了解HTTP协议与TCP协议的关系。HTTP（超文本传输协议）运行在TCP（传输控制协议）之上，HTTP的请求和响应数据都通过TCP连接传输。
@@ -102,6 +108,7 @@ class Request(BaseHTTPRequestHandler):
            and  not path.startswith('/v1/login/')):
             self.send_response(404)
             self.send_header('Content-Length', 0)
+            self.send_header('Connection', 'keep-alive')
             self.end_headers()
             self.wfile.flush()
             return
@@ -112,6 +119,7 @@ class Request(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Connection', 'keep-alive')
             data = encode_v1_models(models).encode('utf-8')
             self.send_header('Content-Length', len(data))
             self.end_headers()
@@ -122,6 +130,7 @@ class Request(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Connection', 'keep-alive')
             data = encode_engines(models).encode('utf-8')
             self.send_header('Content-Length', len(data))
             self.end_headers()
@@ -135,6 +144,7 @@ class Request(BaseHTTPRequestHandler):
                 self.send_response(401)
                 self.send_header('Access-Control-Allow-Origin', '*')
                 self.send_header('Content-Type', 'application/json')
+                self.send_header('Connection', 'keep-alive')
                 self.send_header('Content-Length', 2)
                 self.end_headers()
                 self.wfile.write(b'{}')
@@ -144,6 +154,7 @@ class Request(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Access-Control-Allow-Origin', '*')
             self.send_header('Content-Type', 'application/json')
+            self.send_header('Connection', 'keep-alive')
             self.send_header('Content-Length', 2)
             self.end_headers()
             self.wfile.write(b'{}')
@@ -153,10 +164,12 @@ class Request(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Access-Control-Allow-Origin', '*')
             self.send_header('Content-Type', 'application/javascript')
-            js = endode_js(JS_CONTENT)
+            self.send_header('Connection', 'keep-alive')
+            # js = endode_js(JS_CONTENT)
+            js = JS_CONTENT # currently don't need to encode according model list
             js = js.encode('utf-8')
             self.send_header('Content-Length', len(js))
-            self.send_header('Content-Type', 'application/javascript')
+            # self.send_header('Content-Type', 'application/javascript')
             self.send_header
             self.end_headers()
             self.wfile.write(js)
@@ -171,6 +184,7 @@ class Request(BaseHTTPRequestHandler):
             self.send_response(404)
             self.send_header('Content-Length', 0)
             self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Connection', 'keep-alive')
             self.end_headers()
             self.wfile.flush()
             return
@@ -190,6 +204,7 @@ class Request(BaseHTTPRequestHandler):
             self.send_header('Content-Length', len(data))
             self.send_header('Access-Control-Allow-Origin', '*')
             self.send_header('Content-Type', 'application/json')
+            self.send_header('Connection', 'keep-alive')
             self.end_headers()
             self.wfile.write(data)
             self.wfile.flush()
@@ -211,6 +226,7 @@ class Request(BaseHTTPRequestHandler):
             self.send_header('Content-Length', len(data))
             self.send_header('Access-Control-Allow-Origin', '*')
             self.send_header('Content-Type', 'application/json')
+            self.send_header('Connection', 'keep-alive')
             self.end_headers()
             self.wfile.write(data)
             self.wfile.flush()
@@ -220,29 +236,31 @@ class Request(BaseHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Content-Type', 'text/event-stream; charset=utf-8')
         self.send_header('Transfer-Encoding', 'chunked')
+        self.send_header('Connection', 'keep-alive')
         self.end_headers()
         ans = answer
         ended = False
         while(ended == False):
-            sleep(0.1)
-            tmp = ans[0:10]
-            ans = ans[10:]
-            data = {"id":"chatcmpl-9ipfOZcUIw8DEQe4q8ncQXTK8xywv","object":"chat.completion.chunk","created":1720472066,"model":"gpt-4-0613","system_fingerprint":None,"choices":[{"index":0,"delta":{"content":tmp},"logprobs":None,"finish_reason":None}],"usage":None}
-            data = json.dumps(data, ensure_ascii=False)
-            data = 'data: ' + data + '\n\n'
-            if(tmp == ''):
-                data = ''
-                self.wfile.write(b'E\r\ndata: [DONE]\n\n\r\n')
-                self.wfile.write(b'0\r\n\r\n')
-                self.wfile.flush()
-                # self.wfile.close()
+            try:
+                sleep(0.1)
+                tmp = ans[0:10]
+                ans = ans[10:]
+                data = {"id":"chatcmpl-9ipfOZcUIw8DEQe4q8ncQXTK8xywv","object":"chat.completion.chunk","created":1720472066,"model":"gpt-4-0613","system_fingerprint":None,"choices":[{"index":0,"delta":{"content":tmp},"logprobs":None,"finish_reason":None}],"usage":None}
+                data = json.dumps(data, ensure_ascii=False)
+                data = 'data: ' + data + '\n\n'
+                if(tmp == ''):
+                    data = ''
+                    self.wfile.write(b'E\r\ndata: [DONE]\n\n\r\n')
+                    self.wfile.write(b'0\r\n\r\n')
+                    self.wfile.flush()
+                    break
+                data = data.encode('utf-8')
+                self.wfile.write(f"{len(data):X}".encode('utf-8'))
+                self.wfile.write(b'\r\n')
+                self.wfile.write(data)
+                self.wfile.write(b'\r\n')
+            except (BrokenPipeError, ConnectionResetError):
                 break
-                ended = True
-            data = data.encode('utf-8')
-            self.wfile.write(f"{len(data):X}".encode('utf-8'))
-            self.wfile.write(b'\r\n')
-            self.wfile.write(data)
-            self.wfile.write(b'\r\n')
         
     
     def do_OPTIONS(self):
@@ -254,10 +272,54 @@ class Request(BaseHTTPRequestHandler):
     
     def log_message(self, *args) -> None:
         pass
-        
-init()
-server = ThreadingHTTPServer(('0.0.0.0', 9025), Request)
-start_new_thread(server.serve_forever, ())
+    
+    def handle(self):
+        try:
+            super().handle()
+        except (BrokenPipeError, ConnectionResetError):
+            pass
 
-while True:
-    sleep(10)
+
+init()
+# server = ThreadingHTTPServer(('0.0.0.0', 9025), Request)
+# start_new_thread(server.serve_forever, ())
+
+# while True:
+#     sleep(10)
+
+def create_server(port:int, database_path:str, log_path:str) -> None:
+    global PORT
+    if(port <=0 or port >=65536):
+        raise ValueError('Invalid port number: ' + str(port))
+    PORT = port
+
+def add_model(base_url:str, api_key:str, model_name:str, new_name: str=None) -> None:
+    if(model_name == '' or new_name == ''):
+        raise ValueError('Model name cannot be empty.')
+    if(new_name == None):
+        new_name = model_name
+    if(model_name.replace(' ', '').replace('\n', '') == '' or new_name.replace(' ', '').replace('\n', '') == ''):
+        raise ValueError('Model name cannot be empty.')
+    if(new_name in models):
+        raise ValueError(f'Model name {new_name} already exists.')
+    models.append(new_name)
+    pass
+
+def add_models(base_url:str, api_key:str, models:list[str] = [], prefix:str='', postfix:str='') -> None:
+    pass
+
+
+def start_server_async() -> None:
+    server = ThreadingHTTPServer(('0.0.0.0', PORT), Request)
+    start_new_thread(server.serve_forever, ())
+
+
+if __name__ == '__main__':
+    create_server(9025, './database.db', './log.txt')
+    add_model('','','jtc')
+    # add_model('','','jtc')
+    add_model('','','gpt-4')
+    add_model('','','gpt-3.5-turbo')
+    start_server_async()
+    while True:
+        sleep(10)
