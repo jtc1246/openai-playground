@@ -129,6 +129,11 @@ def get_models_from_url(base_url: str, api_key: str):
     
     will not handle whether api key is correct here, if server doesn't do verification on /v1/models
     '''
+    # this comment is the latest: currently designed to provide separate functions for zhipu 
+    #     and doubao, which don't have models api, just think all models are available
+    # # for zhipu, because it doesn't have models api
+    # if('zhipu' in base_url or 'bigmodel.cn' in base_url):
+    #     return ['glm-4-0520', 'glm-4', 'glm-4-AirX', 'glm-4-Air', 'glm-4-Flash', 'chatglm-3', 'glm-3-turbo']
     url = base_url + '/models'
     header = {
         'Authorization': f'Bearer {api_key}',

@@ -7,7 +7,7 @@ from utils import endode_js, encode_engines, encode_v1_models,\
                   get_models_from_url, get_models_from_url_ollama
 from mySecrets import hexToStr
 import json
-from keys import OPENAI_API_KEY, COHERE_API_KEY, OLLAMA_API_KEY, ZHIPU_API_KEY
+from keys import OPENAI_API_KEY, COHERE_API_KEY, OLLAMA_API_KEY, ZHIPU_API_KEY, KIMI_API_KEY, DOUBAO_API_KEY
 
 __all__ = ['create_server', 'start_server_async',
            'add_model', 'add_models', 'add_ollama_model', 'add_ollama_models']
@@ -416,6 +416,23 @@ def add_ollama_models(base_url:str, api_key:str, models_:list[str] = [], prefix:
     raise Exception()
 
 
+def add_zhipu_doubao(base_url: str, api_key:str, model_name:str, new_name: str=None) -> None:
+    if(not base_url.startswith('http://') and not base_url.startswith('https://')):
+        raise ValueError('Invalid url. Url should start with http:// or https://')
+    if(base_url[-1] == '/'):
+        base_url = base_url[:-1]
+    if(model_name == '' or new_name == ''):
+        raise ValueError('Model name cannot be empty.')
+    if(new_name == None):
+        new_name = model_name
+    if(model_name.replace(' ', '').replace('\n', '') == '' or new_name.replace(' ', '').replace('\n', '') == ''):
+        raise ValueError('Model name cannot be empty.')
+    if(new_name in models):
+        raise ValueError(f'Model name {new_name} already exists.')
+    models.append(new_name)
+    model_info[new_name] = (base_url, api_key, model_name, False)
+    print(f'Model {new_name} added, but its availability and correctness of api key is not tested.')
+
 
 def start_server_async() -> None:
     if (PORT == 0):
@@ -432,7 +449,9 @@ if __name__ == '__main__':
     add_model('https://api.openai.com/v1/', OPENAI_API_KEY, 'gpt-4o-2024-05-13', 'openai-gpt-4o')
     add_model('https://api.openai.com/v1/', OPENAI_API_KEY, 'gpt-3.5-turbo-0125', 'openai-gpt-3.5')
     add_ollama_models('http://127.0.0.1:11434', 'ollama')
-    add_model('https://open.bigmodel.cn/api/paas/v4/', ZHIPU_API_KEY, 'glm-4', 'glm-4')
+    add_models('https://api.moonshot.cn/v1', KIMI_API_KEY)
+    add_zhipu_doubao('https://open.bigmodel.cn/api/paas/v4/', ZHIPU_API_KEY, 'glm-4')
+    add_zhipu_doubao('https://ark.cn-beijing.volces.com/api/v3', DOUBAO_API_KEY, 'ep-20240709181337-fmg27', 'doubao-pro-128k-240628')
     start_server_async()
     # while True:
     #     sleep(10)
