@@ -12,7 +12,7 @@ from keys import OPENAI_API_KEY, COHERE_API_KEY, OLLAMA_API_KEY, ZHIPU_API_KEY, 
 __all__ = ['create_server', 'start_server_async',
            'add_model', 'add_models', 'add_ollama_model', 'add_ollama_models']
 
-PASSWORD = 'jtc1246'
+PASSWORD = ''
 
 JS_URL = 'https://openaiapi-site.azureedge.net/public-assets/d/ddd16bc977/static/js/main.600c2350.js'
 
@@ -290,11 +290,14 @@ init()
 # while True:
 #     sleep(10)
 
-def create_server(port:int, database_path:str, log_path:str) -> None:
-    global PORT
+def create_server(port:int, password:str, database_path:str, log_path:str) -> None:
+    global PORT, PASSWORD
     if(port <=0 or port >=65536):
         raise ValueError('Invalid port number: ' + str(port))
     PORT = port
+    if(len(password) == 0):
+        raise TypeError('Password cannot be empty.')
+    PASSWORD = password
 
 def add_model(base_url:str, api_key:str, model_name:str, new_name: str=None) -> None:
     if(not base_url.startswith('http://') and not base_url.startswith('https://')):
@@ -442,7 +445,7 @@ def start_server_async() -> None:
 
 
 if __name__ == '__main__':
-    create_server(9025, './database.db', './log.txt')
+    create_server(9025, 'jtc1246', './database.db', './log.txt')
     add_model('http://jtc1246.com:9002/v1/',COHERE_API_KEY,'command-r-plus','cohere')
     # add_models('https://api.openai.com/v1/', OPENAI_API_KEY, ['gpt-3.5-turbo','gpt-4'], prefix='openai-')
     add_model('https://api.openai.com/v1/', OPENAI_API_KEY, 'gpt-4-turbo-2024-04-09', 'openai-gpt-4')
