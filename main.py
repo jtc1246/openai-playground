@@ -1,0 +1,263 @@
+from typing import Any
+from myHttp import http
+from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
+from time import time, sleep
+from _thread import start_new_thread
+from utils import endode_js, encode_engines, encode_v1_models
+from mySecrets import hexToStr
+import json
+
+PASSWORD = 'jtc1246'
+
+JS_URL = 'https://openaiapi-site.azureedge.net/public-assets/d/ddd16bc977/static/js/main.600c2350.js'
+
+JS_CONTENT = ''
+
+def init():
+    global JS_CONTENT
+    tmp = http(JS_URL, ToJson=False)
+    if(tmp['status'] < 0 or tmp['code'] != 200):
+        print('Failed to fetch JS file')
+        raise Exception('Failed to fetch JS file')
+    JS_CONTENT = tmp['text']
+
+
+models = ['jtc', 'gpt-3.5-turbo', 'gpt-4']
+
+
+answer = '''要理解Transfer-Encoding: chunked的HTTP请求如何在TCP层面处理，有必要了解HTTP协议与TCP协议的关系。HTTP（超文本传输协议）运行在TCP（传输控制协议）之上，HTTP的请求和响应数据都通过TCP连接传输。
+
+### Transfer-Encoding: chunked的HTTP请求概述
+
+当HTTP请求或响应的头部包含`Transfer-Encoding: chunked`，意味着消息体（数据部分）是以一系列大小不确定的块（chunk）形式传输的，而不是一次性传输整个消息体。这对支持流式传输或发送动态生成内容非常有用。每个块都有自己的大小标识，并且最后一个块是大小为0的块，标识消息体结束。
+
+### TCP层面处理流程
+
+以下是一个通过TCP处理 chunked 传输的简化步骤：
+
+1. **建立TCP连接**: 客户端（通常是浏览器或其他HTTP客户端）和服务器建立一个TCP连接。
+
+2. **发送HTTP请求头部**: 客户端发送HTTP请求头部，其中包含`Transfer-Encoding: chunked`。
+
+    ```
+    POST /upload HTTP/1.1
+    Host: example.com
+    Transfer-Encoding: chunked
+    Content-Type: text/plain
+    
+    ```
+
+3. **发送第一个数据块**: 客户端通过TCP连接发送第一个数据块。
+
+    ```
+    5\\r\\n
+    Hello\\r\\n
+    ```
+
+    - `5\\r\\n`表示数据块的长度（5个字节）
+    - `Hello\\r\\n`是实际的数据块内容，后跟换行符
+
+4. **发送后续块**: 每个数据块通过TCP连接依次发送，直到最后一个块。
+
+    ```
+    7\\r\\n
+    World!\\r\\n
+    0\\r\\n
+    \\r\\n
+    ```
+
+    - `7\\r\\n`表示下一个数据块的长度（7个字节）
+    - `World!\\r\\n`是实际的数据块内容，后跟换行符
+    - `0\\r\\n`表示这是最后一个块（长度为0）
+    - `\\r\\n`表示消息体结束
+
+5. **服务器处理块**: 服务器从TCP连接读取数据，解析每个块的大小与内容，并进行相应的处理。
+
+6. **发送HTTP响应**: 服务器在处理完成后，通过同一个TCP连接返回HTTP响应，这个响应也可能使用chunked传输编码。
+
+例子：
+
+```
+HTTP/1.1 200 OK
+Transfer-Encoding: chunked
+Content-Type: text/plain
+
+7\\r\\n
+Success\\r\\n
+0\\r\\n
+\\r\\n
+```
+
+### 总结
+
+HTTP的chunked传输编码通过将消息体分成一系列块，并通过TCP连接逐块发送。每个块包含其大小的元数据，使接收方知道如何正确拼接这些块。TCP连接保证了数据传输的完整性和顺序，因此chunked传输编码可以有效地用于动态内容传输和流式数据传输。'''
+
+
+class Request(BaseHTTPRequestHandler):
+    def do_GET(self):
+        path=self.path
+        print(path)
+        # print(self.headers['Cookie'])
+        if(path not in ['/v1/models','/v1/engines', '/600c2350.js']
+           and  not path.startswith('/v1/login/')):
+            self.send_response(404)
+            self.send_header('Content-Length', 0)
+            self.end_headers()
+            self.wfile.flush()
+            return
+        # self.send_response(200)
+        # self.send_header('Content-Type', 'application/json')
+        # self.send_header('Access-Control-Allow-Origin', '*')
+        if path == '/v1/models':
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            data = encode_v1_models(models).encode('utf-8')
+            self.send_header('Content-Length', len(data))
+            self.end_headers()
+            self.wfile.write(data)
+            self.wfile.flush()
+            return
+        if path == '/v1/engines':
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            data = encode_engines(models).encode('utf-8')
+            self.send_header('Content-Length', len(data))
+            self.end_headers()
+            self.wfile.write(data)
+            self.wfile.flush()
+            return
+        if path.startswith('/v1/login/'):
+            path = path[len('/v1/login/'):]
+            password = hexToStr(path)
+            if(password != PASSWORD):
+                self.send_response(401)
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Content-Length', 2)
+                self.end_headers()
+                self.wfile.write(b'{}')
+                self.wfile.flush()
+                return
+            print(200)
+            self.send_response(200)
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Length', 2)
+            self.end_headers()
+            self.wfile.write(b'{}')
+            self.wfile.flush()
+            return
+        if path == '/600c2350.js':
+            self.send_response(200)
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Content-Type', 'application/javascript')
+            js = endode_js(JS_CONTENT)
+            js = js.encode('utf-8')
+            self.send_header('Content-Length', len(js))
+            self.send_header('Content-Type', 'application/javascript')
+            self.send_header
+            self.end_headers()
+            self.wfile.write(js)
+            # self.wfile.write(JS_CONTENT)
+            self.wfile.flush()
+            return
+        
+    def do_POST(self):
+        path = self.path
+        print(path)
+        if(not path.startswith('/v1/chat/completions/')):
+            self.send_response(404)
+            self.send_header('Content-Length', 0)
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.flush()
+            return
+        pw = path[len('/v1/chat/completions/'):]
+        pw = hexToStr(pw)
+        if(pw != PASSWORD):
+            self.send_response(404)
+            data = {
+                "error": {
+                    "message": "Not logged in, please refresh the page and input password again.", 
+                    "type": "invalid_request_error",
+                    "param": None,
+                    "code": None
+                }
+            }
+            data = json.dumps(data, ensure_ascii=False).encode('utf-8')
+            self.send_header('Content-Length', len(data))
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(data)
+            self.wfile.flush()
+            return
+        body = self.rfile.read(int(self.headers['Content-Length']))
+        body = json.loads(body)
+        model_name = body['model']
+        if(model_name not in models):
+            self.send_response(404)
+            data = {
+                "error": {
+                    "message": f"No model named {model_name}.", 
+                    "type": "invalid_request_error",
+                    "param": None,
+                    "code": None
+                }
+            }
+            data = json.dumps(data, ensure_ascii=False).encode('utf-8')
+            self.send_header('Content-Length', len(data))
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(data)
+            self.wfile.flush()
+            return
+        print('stream')
+        self.send_response(200)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Content-Type', 'text/event-stream; charset=utf-8')
+        self.send_header('Transfer-Encoding', 'chunked')
+        self.end_headers()
+        ans = answer
+        ended = False
+        while(ended == False):
+            sleep(0.1)
+            tmp = ans[0:10]
+            ans = ans[10:]
+            data = {"id":"chatcmpl-9ipfOZcUIw8DEQe4q8ncQXTK8xywv","object":"chat.completion.chunk","created":1720472066,"model":"gpt-4-0613","system_fingerprint":None,"choices":[{"index":0,"delta":{"content":tmp},"logprobs":None,"finish_reason":None}],"usage":None}
+            data = json.dumps(data, ensure_ascii=False)
+            data = 'data: ' + data + '\n\n'
+            if(tmp == ''):
+                data = ''
+                self.wfile.write(b'E\r\ndata: [DONE]\n\n\r\n')
+                self.wfile.write(b'0\r\n\r\n')
+                self.wfile.flush()
+                # self.wfile.close()
+                break
+                ended = True
+            data = data.encode('utf-8')
+            self.wfile.write(f"{len(data):X}".encode('utf-8'))
+            self.wfile.write(b'\r\n')
+            self.wfile.write(data)
+            self.wfile.write(b'\r\n')
+        
+    
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Headers', 'openai-organization,content-type,authorization')
+        self.end_headers()
+        self.wfile.flush()
+    
+    def log_message(self, *args) -> None:
+        pass
+        
+init()
+server = ThreadingHTTPServer(('0.0.0.0', 9025), Request)
+start_new_thread(server.serve_forever, ())
+
+while True:
+    sleep(10)
