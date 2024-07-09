@@ -7,9 +7,10 @@ from utils import endode_js, encode_engines, encode_v1_models,\
                   get_models_from_url, get_models_from_url_ollama
 from mySecrets import hexToStr
 import json
-from keys import OPENAI_API_KEY, COHERE_API_KEY, OLLAMA_API_KEY
+from keys import OPENAI_API_KEY, COHERE_API_KEY, OLLAMA_API_KEY, ZHIPU_API_KEY
 
-__all__ = ['create_server']
+__all__ = ['create_server', 'start_server_async',
+           'add_model', 'add_models', 'add_ollama_model', 'add_ollama_models']
 
 PASSWORD = 'jtc1246'
 
@@ -417,6 +418,8 @@ def add_ollama_models(base_url:str, api_key:str, models_:list[str] = [], prefix:
 
 
 def start_server_async() -> None:
+    if (PORT == 0):
+        raise Exception("Please first call create_server.")
     server = ThreadingHTTPServer(('0.0.0.0', PORT), Request)
     start_new_thread(server.serve_forever, ())
 
@@ -429,6 +432,7 @@ if __name__ == '__main__':
     add_model('https://api.openai.com/v1/', OPENAI_API_KEY, 'gpt-4o-2024-05-13', 'openai-gpt-4o')
     add_model('https://api.openai.com/v1/', OPENAI_API_KEY, 'gpt-3.5-turbo-0125', 'openai-gpt-3.5')
     add_ollama_models('http://127.0.0.1:11434', 'ollama')
+    add_model('https://open.bigmodel.cn/api/paas/v4/', ZHIPU_API_KEY, 'glm-4', 'glm-4')
     start_server_async()
     # while True:
     #     sleep(10)

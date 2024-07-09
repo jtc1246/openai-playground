@@ -11,15 +11,22 @@ def endode_js(js: str):
     Modify the js file that it thinks all model names are valid.
     '''
     origin_js = js
+    found_replacer = True
     if (js.find('/^gpt-3\.5-turbo(?!-instruct)(?!-base)|^gpt-4(?!-base)|^gpt-dv/') >= 0):
-        print('found')
+        # print('found')
+        pass
     else:
-        print('not found')
+        # print('not found')
+        found_replacer = False
     js = js.replace('/^gpt-3\.5-turbo(?!-instruct)(?!-base)|^gpt-4(?!-base)|^gpt-dv/', '/^.*$/')
     if (js.find('/^gpt-4[a-z]?-(?!vision)(?!base).*/') >= 0):
-        print('found')
+        # print('found')
+        pass
     else:
-        print('not found')
+        # print('not found')
+        found_replacer = False
+    if(found_replacer == False):
+        print('Warning: Some text that needed to replace is not found in the current js file (because it has changed from origin one). The website might work normally, might not work. If it doesn\'t work, this may be a reason.')
     js = js.replace('/^gpt-4[a-z]?-(?!vision)(?!base).*/', '/^.*$/')
     js = js.replace('"/v1/chat/completions"', '"/v1/chat/completions/"+jtc_password')
     with open('append.js', 'r') as f:
