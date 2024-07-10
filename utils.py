@@ -1,6 +1,5 @@
 import json
 from myHttp import http
-from keys import OPENAI_API_KEY, COHERE_API_KEY, OLLAMA_API_KEY
 from hashlib import sha256
 from queue import Queue
 
@@ -201,6 +200,7 @@ def handle_stream_data(request_obj, data_queue:Queue):
 
 
 if __name__ == '__main__':
+    from keys import OPENAI_API_KEY, COHERE_API_KEY, OLLAMA_API_KEY
     print(get_models_from_url('https://api.openai.com/v1', OPENAI_API_KEY))
     print(get_models_from_url('http://jtc1246.com:9002/v1', COHERE_API_KEY))
     print(get_models_from_url_ollama('http://127.0.0.1:11434', 'ollama'))

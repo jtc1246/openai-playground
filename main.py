@@ -11,7 +11,6 @@ import json
 import requests
 from random import randint
 from queue import Queue
-from keys import OPENAI_API_KEY, COHERE_API_KEY, OLLAMA_API_KEY, ZHIPU_API_KEY, KIMI_API_KEY, DOUBAO_API_KEY
 
 __all__ = ['create_server', 'start_server_async',
            'add_model', 'add_models', 'add_ollama_model', 'add_ollama_models'
@@ -43,7 +42,6 @@ class Request(BaseHTTPRequestHandler):
     def do_GET(self):
         path=self.path
         print(path)
-        # print(self.headers['Cookie'])
         if(path not in ['/v1/models','/v1/engines', '/600c2350.js']
            and  not path.startswith('/v1/login/')):
             self.send_response(404)
@@ -52,9 +50,6 @@ class Request(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.flush()
             return
-        # self.send_response(200)
-        # self.send_header('Content-Type', 'application/json')
-        # self.send_header('Access-Control-Allow-Origin', '*')
         if path == '/v1/models':
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
@@ -105,15 +100,12 @@ class Request(BaseHTTPRequestHandler):
             self.send_header('Access-Control-Allow-Origin', '*')
             self.send_header('Content-Type', 'application/javascript')
             self.send_header('Connection', 'keep-alive')
-            # js = endode_js(JS_CONTENT)
             js = JS_CONTENT # currently don't need to encode according model list
             js = js.encode('utf-8')
             self.send_header('Content-Length', len(js))
-            # self.send_header('Content-Type', 'application/javascript')
             self.send_header
             self.end_headers()
             self.wfile.write(js)
-            # self.wfile.write(JS_CONTENT)
             self.wfile.flush()
             return
         
@@ -308,7 +300,7 @@ init()
 
 def create_server(port:int, password:str, database_path:str, log_path:str) -> None:
     '''
-    Create the playground server.
+    Create the playground server. Just create, will not start. You need to add models to it and then call `start_server_async` later.
     
     Arguments:
     
@@ -520,6 +512,7 @@ def start_server_async() -> None:
 
 
 if __name__ == '__main__':
+    from keys import OPENAI_API_KEY, COHERE_API_KEY, OLLAMA_API_KEY, ZHIPU_API_KEY, KIMI_API_KEY, DOUBAO_API_KEY
     create_server(9025, 'jtc1246', './database.db', './log.txt')
     add_model('http://jtc1246.com:9002/v1/',COHERE_API_KEY+'f','command-r-plus','cohere')
     # add_models('https://api.openai.com/v1/', OPENAI_API_KEY, ['gpt-3.5-turbo','gpt-4'], prefix='openai-')
