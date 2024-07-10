@@ -224,6 +224,7 @@ def construct_response(data: bytes):
             result += p['choices'][0]['delta']['content']
         except:
             return result
+    return result
 
 
 def handle_log_queue(log_queue:Queue, stream_id:str):
