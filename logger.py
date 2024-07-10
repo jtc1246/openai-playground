@@ -12,7 +12,9 @@ log_file = None
 log_queue = Queue()
 
 
-__all__ = ['set_base_path', 'write_raw_api_responses', 'write_chat_completions_api', 'write_chat_error', 'write_plain_text', 'write_config_log', 'write_get_log', 'write_post_illegal', 'write_post_raw']
+__all__ = ['set_base_path', 'write_raw_api_responses', 'write_chat_completions_api',
+           'write_chat_error', 'write_plain_text', 'write_config_log', 'write_get_log', 
+           'write_post_header', 'write_post_raw', 'write_plain_response']
 
 
 def set_base_path(p: str):
@@ -94,6 +96,13 @@ def write_post_raw(path: str, ip: str, header: str, data: bytes, stream_id: str)
     ip = ip + ' ' * (15 - len(ip))
     path = path + ' ' * (50 - len(path))
     content = 'POST_RAW' + ',  ' + stream_id + '  ' + path + '  ' + ip + '  ' + json.dumps(header, ensure_ascii=False) + '  ' + data # bytes
+    log_queue.put(content)
+
+
+def write_plain_response(stream_id:str, data: str, index: int):
+    index = str(index)
+    index = index + ' ' * (5 - len(index))
+    content = "PURE_RSP,  " + stream_id + '  ' + index + ' ' + data
     log_queue.put(content)
 
 

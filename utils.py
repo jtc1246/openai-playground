@@ -2,7 +2,7 @@ import json
 from myHttp import http
 from hashlib import sha256
 from queue import Queue
-from logger import write_raw_api_responses, write_config_log
+from logger import write_raw_api_responses, write_config_log, write_plain_response
 
 __all__ = ['endode_js', 'encode_engines', 'encode_v1_models',
            'get_models_from_url', 'get_models_from_url_ollama',
@@ -209,14 +209,37 @@ def handle_stream_data(request_obj, data_queue:Queue):
         pass
 
 
+def construct_response(data: bytes):
+    while(len(data) > 0 and data[-1] == b'\n'):
+        data = data[:-1]
+    if(len(data) == 0):
+        return ''
+    parts = data.split(b'\n\n')
+    result = ''
+    for p in parts:
+        p = p[6:]
+        try:
+            p = p.decode('utf-8')
+            p = json.loads(p)
+            result += p['choices'][0]['delta']['content']
+        except:
+            return result
+
+
 def handle_log_queue(log_queue:Queue, stream_id:str):
     index = 0
+    data_till_now = b''
+    latest_resp = ''
     while True:
         data = log_queue.get()
         if (data == False):
             write_raw_api_responses(stream_id, "END OF RESPONSE", index)
+            write_plain_response(stream_id, str([latest_resp]) + ' FINISHED', index)
             break
+        data_till_now += data
+        latest_resp = construct_response(data_till_now)
         write_raw_api_responses(stream_id, data, index)
+        write_plain_response(stream_id, str([latest_resp]), index)
         index += 1
 
 
