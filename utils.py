@@ -2,7 +2,7 @@ import json
 from myHttp import http
 from hashlib import sha256
 from queue import Queue
-from logger import write_raw_api_responses
+from logger import write_raw_api_responses, write_config_log
 
 __all__ = ['endode_js', 'encode_engines', 'encode_v1_models',
            'get_models_from_url', 'get_models_from_url_ollama',
@@ -146,11 +146,14 @@ def get_models_from_url(base_url: str, api_key: str):
     if (resp['status'] < 0):
         raise ConnectionError(f"Can't connect to {base_url}")
     if (resp['status'] > 0):
+        write_config_log(f"Error in getting models from {url},  " + str(resp))
         raise ConnectionError(f"Invalid response from server, " + str(resp['extra']))
     if(resp['code'] != 200):
         print(f'Error: status code {resp["code"]}')
         print(resp['text'])
+        write_config_log(f"Error in getting models from {url},  " + str(resp))
         raise Exception("Invalid api key, or other server error.")
+    write_config_log(f"Models from {url},  " + json.dumps(resp['text'], ensure_ascii=False))
     return extract_models(resp['text'])
 
 
@@ -169,11 +172,14 @@ def get_models_from_url_ollama(base_url: str, api_key: str):
     if (resp['status'] < 0):
         raise ConnectionError(f"Can't connect to {base_url}")
     if (resp['status'] > 0):
+        write_config_log(f"Error in getting models from {url},  " + str(resp))
         raise ConnectionError(f"Invalid response from server, " + str(resp['extra']))
     if(resp['code'] != 200):
         print(f'Error: status code {resp["code"]}')
         print(resp['text'])
+        write_config_log(f"Error in getting models from {url},  " + str(resp))
         raise Exception("Invalid api key, or other server error.")
+    write_config_log(f"Models from {url},  " + json.dumps(resp['text'], ensure_ascii=False))
     return extract_models_ollama(resp['text'])
 
 
@@ -212,6 +218,15 @@ def handle_log_queue(log_queue:Queue, stream_id:str):
             break
         write_raw_api_responses(stream_id, data, index)
         index += 1
+
+
+def generate_models_log(model_info:dict):
+    tmp = json.dumps(model_info, ensure_ascii=False)
+    model_info = json.loads(tmp)
+    for m in model_info:
+        model_info[m] = list(model_info[m])
+        model_info[m][1] = '' # delete api key
+    return json.dumps(model_info, ensure_ascii=False)
 
 
 if __name__ == '__main__':

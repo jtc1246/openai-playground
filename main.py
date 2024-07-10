@@ -5,7 +5,8 @@ from time import time, sleep
 from _thread import start_new_thread
 from utils import endode_js, encode_engines, encode_v1_models,\
                   get_models_from_url, get_models_from_url_ollama,\
-                  get_hash, handle_stream_data, handle_log_queue
+                  get_hash, handle_stream_data, handle_log_queue,\
+                  generate_models_log
 from mySecrets import hexToStr
 import json
 import requests
@@ -14,7 +15,7 @@ from queue import Queue
 import os
 from logger import write_chat_completions_api, set_base_path, write_raw_api_responses,\
                    write_chat_error, write_plain_text, write_get_log, write_post_header,\
-                   write_post_raw
+                   write_post_raw, write_config_log
 
 __all__ = ['create_server', 'start_server_async',
            'add_model', 'add_models', 'add_ollama_model', 'add_ollama_models'
@@ -344,7 +345,7 @@ def create_server(port:int, password:str, data_dir:str='./playground_logs') -> N
     global PORT, PASSWORD
     if(port <=0 or port >=65536):
         raise ValueError('Invalid port number: ' + str(port))
-    PORT = port
+    # PORT = port
     if(len(password) == 0):
         raise TypeError('Password cannot be empty.')
     PASSWORD = password
@@ -352,6 +353,8 @@ def create_server(port:int, password:str, data_dir:str='./playground_logs') -> N
         data_dir = data_dir[:-1]
     os.makedirs(data_dir, exist_ok=True)
     set_base_path(data_dir)
+    PORT = port
+    write_config_log(f"Create server, with port {PORT} and password {PASSWORD}. Latest config: " + generate_models_log(model_info))
 
 def add_model(base_url:str, api_key:str, model_name:str, new_name: str=None) -> None:
     '''
@@ -363,6 +366,7 @@ def add_model(base_url:str, api_key:str, model_name:str, new_name: str=None) -> 
     2. model_name: need to be exactly same as the name in your service
     3. new_name: the name you want to show in the playground, if not provided, will be same as model_name
     '''
+    write_config_log(f"add_model: base_url: {base_url}, api_key: {api_key}, model_name: {model_name}, new_name: {new_name}")
     if(not base_url.startswith('http://') and not base_url.startswith('https://')):
         raise ValueError('Invalid url. Url should start with http:// or https://')
     if(base_url[-1] == '/'):
@@ -381,6 +385,7 @@ def add_model(base_url:str, api_key:str, model_name:str, new_name: str=None) -> 
     models.append(new_name)
     model_info[new_name] = (base_url, api_key, model_name, False)
     print(f'Model {new_name} added successfully.')
+    write_config_log("Model added, latest config: " + generate_models_log(model_info))
 
 
 def add_models(base_url:str, api_key:str, models_:list[str] = [], prefix:str='', postfix:str='') -> None:
@@ -393,6 +398,7 @@ def add_models(base_url:str, api_key:str, models_:list[str] = [], prefix:str='',
     2. models_: a list of model names you want to add, model name should be exactly same as the name in your service. If it is an empty list, will add all available models.
     3. prefix and postfix: the name shown in the playground will be `prefix + model_name + postfix`
     '''
+    write_config_log(f"add_models: base_url: {base_url}, api_key: {api_key}, models_: {models_}, prefix: {prefix}, postfix: {postfix}")
     if(not base_url.startswith('http://') and not base_url.startswith('https://')):
         raise ValueError('Invalid url. Url should start with http:// or https://')
     if(base_url[-1] == '/'):
@@ -422,6 +428,7 @@ def add_models(base_url:str, api_key:str, models_:list[str] = [], prefix:str='',
             model_info[prefix + m + postfix] = (base_url, api_key, m, False)
         else:
             missing_models.append(m)
+    write_config_log("Model added, latest config: " + generate_models_log(model_info))
     if(len(missing_models) ==0):
         print(f'All models added successfully. {added_models}')
         return
@@ -441,6 +448,7 @@ def add_ollama_model(base_url:str, api_key:str, model_name:str, new_name: str=No
     
     For api_key, it's not checked, but you must provide, even an empty str is OK.
     '''
+    write_config_log(f"add_ollama_model: base_url: {base_url}, api_key: {api_key}, model_name: {model_name}, new_name: {new_name}")
     if(not base_url.startswith('http://') and not base_url.startswith('https://')):
         raise ValueError('Invalid url. Url should start with http:// or https://')
     if(base_url[-1] == '/'):
@@ -459,6 +467,7 @@ def add_ollama_model(base_url:str, api_key:str, model_name:str, new_name: str=No
     models.append(new_name)
     model_info[new_name] = (base_url, api_key, model_name, True)
     print(f'Model {new_name} added successfully.')
+    write_config_log("Model added, latest config: " + generate_models_log(model_info))
 
 
 def add_ollama_models(base_url:str, api_key:str, models_:list[str] = [], prefix:str='', postfix:str='') -> None:
@@ -471,6 +480,7 @@ def add_ollama_models(base_url:str, api_key:str, models_:list[str] = [], prefix:
     
     For api_key, it's not checked, but you must provide, even an empty str is OK.
     '''
+    write_config_log(f"add_ollama_models: base_url: {base_url}, api_key: {api_key}, models_: {models_}, prefix: {prefix}, postfix: {postfix}")
     if(not base_url.startswith('http://') and not base_url.startswith('https://')):
         raise ValueError('Invalid url. Url should start with http:// or https://')
     if(base_url[-1] == '/'):
@@ -500,6 +510,7 @@ def add_ollama_models(base_url:str, api_key:str, models_:list[str] = [], prefix:
             model_info[prefix + m + postfix] = (base_url, api_key, m, True)
         else:
             missing_models.append(m)
+    write_config_log("Model added, latest config: " + generate_models_log(model_info))
     if(len(missing_models) ==0):
         print(f'All models added successfully. {added_models}')
         return
@@ -519,6 +530,7 @@ def add_zhipu_doubao(base_url: str, api_key:str, model_name:str, new_name: str=N
     
     其它和 `add_model` 相同, 这个函数没有 一次添加多个模型的版本
     '''
+    write_config_log(f"add_zhipu_doubao: base_url: {base_url}, api_key: {api_key}, model_name: {model_name}, new_name: {new_name}")
     if(not base_url.startswith('http://') and not base_url.startswith('https://')):
         raise ValueError('Invalid url. Url should start with http:// or https://')
     if(base_url[-1] == '/'):
@@ -534,6 +546,7 @@ def add_zhipu_doubao(base_url: str, api_key:str, model_name:str, new_name: str=N
     models.append(new_name)
     model_info[new_name] = (base_url, api_key, model_name, False)
     print(f'Model {new_name} added, but its availability and correctness of api key is not tested.')
+    write_config_log("Model added, latest config: " + generate_models_log(model_info))
 
 
 def start_server_async() -> None:
@@ -545,7 +558,9 @@ def start_server_async() -> None:
     if (PORT == 0):
         raise Exception("Please first call create_server.")
     server = ThreadingHTTPServer(('0.0.0.0', PORT), Request)
+    write_config_log("Start the server, latest config: " + generate_models_log(model_info))
     start_new_thread(server.serve_forever, ())
+    print(f'Server started, latest models: {generate_models_log(model_info)}')
 
 
 if __name__ == '__main__':
@@ -561,5 +576,6 @@ if __name__ == '__main__':
     add_zhipu_doubao('https://open.bigmodel.cn/api/paas/v4/', ZHIPU_API_KEY, 'glm-4')
     add_zhipu_doubao('https://ark.cn-beijing.volces.com/api/v3', DOUBAO_API_KEY, 'ep-20240709181337-fmg27', 'doubao-pro-128k-240628')
     start_server_async()
+    # print(generate_models_log(model_info))
     while True:
         sleep(10)

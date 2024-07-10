@@ -61,7 +61,7 @@ def write_plain_text(data: str):
 
 
 def write_config_log(data: str):
-    content = 'CONFIG_' + ',  ' + data
+    content = 'CONFIG__' + ',  ' + data
     log_queue.put(content)
 
 
