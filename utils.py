@@ -2,7 +2,8 @@ import json
 from myHttp import http
 from hashlib import sha256
 from queue import Queue
-from logger import write_raw_api_responses, write_config_log, write_plain_response
+from logger import write_raw_api_responses, write_config_log, write_plain_response,\
+                   add_response, update_response, set_token_usage
 
 __all__ = ['endode_js', 'encode_engines', 'encode_v1_models',
            'get_models_from_url', 'get_models_from_url_ollama',
@@ -223,24 +224,31 @@ def construct_response(data: bytes):
             p = json.loads(p)
             result += p['choices'][0]['delta']['content']
         except:
-            return result
+            continue
     return result
 
 
-def handle_log_queue(log_queue:Queue, stream_id:str):
+def handle_log_queue(log_queue:Queue, stream_id:str, full_id:str):
     index = 0
     data_till_now = b''
     latest_resp = ''
+    added = False
     while True:
         data = log_queue.get()
         if (data == False):
             write_raw_api_responses(stream_id, "END OF RESPONSE", index)
             write_plain_response(stream_id, str([latest_resp]) + ' FINISHED', index)
+            set_token_usage(full_id)
             break
         data_till_now += data
         latest_resp = construct_response(data_till_now)
         write_raw_api_responses(stream_id, data, index)
         write_plain_response(stream_id, str([latest_resp]), index)
+        if(added == False):
+            added = True
+            add_response(full_id, latest_resp)
+        else:
+            update_response(full_id, latest_resp)
         index += 1
 
 
