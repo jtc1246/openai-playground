@@ -2,6 +2,7 @@ import json
 from myHttp import http
 from hashlib import sha256
 from queue import Queue
+from logger import write_raw_api_responses
 
 __all__ = ['endode_js', 'encode_engines', 'encode_v1_models',
            'get_models_from_url', 'get_models_from_url_ollama',
@@ -187,16 +188,30 @@ def handle_stream_data(request_obj, data_queue:Queue):
     request_obj.send_header('Transfer-Encoding', 'chunked')
     request_obj.send_header('Connection', 'keep-alive')
     request_obj.end_headers()
+    try:
+        while True:
+            data = data_queue.get()
+            if(data == False):
+                break
+            request_obj.wfile.write(f"{len(data):X}".encode('utf-8'))
+            request_obj.wfile.write(b'\r\n')
+            request_obj.wfile.write(data)
+            request_obj.wfile.write(b'\r\n')
+        request_obj.wfile.write(b'0\r\n\r\n')
+        request_obj.wfile.flush()
+    except:
+        pass
+
+
+def handle_log_queue(log_queue:Queue, stream_id:str):
+    index = 0
     while True:
-        data = data_queue.get()
-        if(data == False):
+        data = log_queue.get()
+        if (data == False):
+            write_raw_api_responses(stream_id, "END OF RESPONSE", index)
             break
-        request_obj.wfile.write(f"{len(data):X}".encode('utf-8'))
-        request_obj.wfile.write(b'\r\n')
-        request_obj.wfile.write(data)
-        request_obj.wfile.write(b'\r\n')
-    request_obj.wfile.write(b'0\r\n\r\n')
-    request_obj.wfile.flush()
+        write_raw_api_responses(stream_id, data, index)
+        index += 1
 
 
 if __name__ == '__main__':

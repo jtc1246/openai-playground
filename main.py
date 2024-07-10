@@ -5,12 +5,14 @@ from time import time, sleep
 from _thread import start_new_thread
 from utils import endode_js, encode_engines, encode_v1_models,\
                   get_models_from_url, get_models_from_url_ollama,\
-                  get_hash, handle_stream_data
+                  get_hash, handle_stream_data, handle_log_queue
 from mySecrets import hexToStr
 import json
 import requests
 from random import randint
 from queue import Queue
+import os
+from logger import write_chat_completions_api, set_base_path, write_raw_api_responses
 
 __all__ = ['create_server', 'start_server_async',
            'add_model', 'add_models', 'add_ollama_model', 'add_ollama_models'
@@ -22,6 +24,7 @@ JS_URL = 'https://openaiapi-site.azureedge.net/public-assets/d/ddd16bc977/static
 
 JS_CONTENT = ''
 PORT = 0
+DATA_DIR = ''
 
 def init():
     global JS_CONTENT
@@ -177,6 +180,7 @@ class Request(BaseHTTPRequestHandler):
         else:
             url = base_url + '/chat/completions'
         body['model'] = origin_name
+        stream_id = get_hash(str(time()) + str(randint(0, 10000000000)) + str(body))[-12:]
         # update json data, change to old version
         for i in range(len(body['messages'])-1, -1, -1):
             if(len(body['messages'][i]['content']) == 0):
@@ -202,13 +206,13 @@ class Request(BaseHTTPRequestHandler):
                 self.wfile.flush()
                 return
             body['messages'][i]['content'] = body['messages'][i]['content'][0]['text']
+        write_chat_completions_api(stream_id, json.dumps(body,ensure_ascii=False), model_name, origin_name, base_url)
         body = json.dumps(body, ensure_ascii=False).encode('utf-8')
         header = {
             'Authorization': f'Bearer {api_key}',
             'Content-Type': 'application/json',
             'Content-Length': str(len(body)),
         }
-        stream_id = get_hash(str(time()) + str(randint(0, 10000000000)) + str(body))
         resp = requests.post(url, headers=header, data=body, stream=True)
         # success, in transfer-encoding chunked mode
         if(resp.status_code == 200 and resp.headers.get('Transfer-Encoding') == 'chunked'):
@@ -216,8 +220,9 @@ class Request(BaseHTTPRequestHandler):
             client_queue = Queue() # sent to client
             log_queue = Queue() # for logs
             start_new_thread(handle_stream_data, (self, client_queue))
+            start_new_thread(handle_log_queue, (log_queue, stream_id))
             for chunk in resp.iter_content(chunk_size=None):
-                print(chunk)
+                # print(chunk)
                 client_queue.put(chunk)
                 log_queue.put(chunk)
             print("stream ended")
@@ -231,6 +236,8 @@ class Request(BaseHTTPRequestHandler):
             # special case for cohere, https://github.com/missuo/cohere2openai
             # it will not have transfer-encoding chunked if response is too short.
             if(b'data: [DONE]' in data):
+                write_raw_api_responses(stream_id, data, 0)
+                write_raw_api_responses(stream_id, "END OF RESPONSE", 1)
                 self.send_response(200)
                 self.send_header('Transfer-Encoding', 'chunked')
                 self.send_header('Access-Control-Allow-Origin', '*')
@@ -298,7 +305,7 @@ class Request(BaseHTTPRequestHandler):
 init()
 
 
-def create_server(port:int, password:str, database_path:str, log_path:str) -> None:
+def create_server(port:int, password:str, data_dir:str='./playground_logs') -> None:
     '''
     Create the playground server. Just create, will not start. You need to add models to it and then call `start_server_async` later.
     
@@ -306,7 +313,7 @@ def create_server(port:int, password:str, database_path:str, log_path:str) -> No
     
     1. password: the password the needs to be input in the browser, for authorization
     
-    2. database_path and log_path currently are not used. (currently no database or logs)
+    2. data_dir: the directory to store the database and logs. Will create if not exists. Currently are not used. (currently no database or logs)
     '''
     global PORT, PASSWORD
     if(port <=0 or port >=65536):
@@ -315,6 +322,10 @@ def create_server(port:int, password:str, database_path:str, log_path:str) -> No
     if(len(password) == 0):
         raise TypeError('Password cannot be empty.')
     PASSWORD = password
+    if(data_dir.endswith('/')):
+        data_dir = data_dir[:-1]
+    os.makedirs(data_dir, exist_ok=True)
+    set_base_path(data_dir)
 
 def add_model(base_url:str, api_key:str, model_name:str, new_name: str=None) -> None:
     '''
@@ -513,8 +524,8 @@ def start_server_async() -> None:
 
 if __name__ == '__main__':
     from keys import OPENAI_API_KEY, COHERE_API_KEY, OLLAMA_API_KEY, ZHIPU_API_KEY, KIMI_API_KEY, DOUBAO_API_KEY
-    create_server(9025, 'jtc1246', './database.db', './log.txt')
-    add_model('http://jtc1246.com:9002/v1/',COHERE_API_KEY+'f','command-r-plus','cohere')
+    create_server(9025, 'jtc1246')
+    add_model('http://jtc1246.com:9002/v1/',COHERE_API_KEY,'command-r-plus','cohere')
     # add_models('https://api.openai.com/v1/', OPENAI_API_KEY, ['gpt-3.5-turbo','gpt-4'], prefix='openai-')
     add_model('https://api.openai.com/v1/', OPENAI_API_KEY, 'gpt-4-turbo-2024-04-09', 'openai-gpt-4')
     add_model('https://api.openai.com/v1/', OPENAI_API_KEY, 'gpt-4o-2024-05-13', 'openai-gpt-4o')
