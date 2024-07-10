@@ -14,7 +14,8 @@ from queue import Queue
 from keys import OPENAI_API_KEY, COHERE_API_KEY, OLLAMA_API_KEY, ZHIPU_API_KEY, KIMI_API_KEY, DOUBAO_API_KEY
 
 __all__ = ['create_server', 'start_server_async',
-           'add_model', 'add_models', 'add_ollama_model', 'add_ollama_models']
+           'add_model', 'add_models', 'add_ollama_model', 'add_ollama_models'
+           'add_zhipu_doubao']
 
 PASSWORD = ''
 
@@ -294,16 +295,39 @@ class Request(BaseHTTPRequestHandler):
             log_queue.put(False)
             return
         else:
+            print('error handling')
             # error handling, don't use stream
             s = resp.status_code
             data = resp.content
+            # special case for cohere, https://github.com/missuo/cohere2openai
+            # it will not have transfer-encoding chunked if response is too short.
+            if(b'data: [DONE]' in data):
+                print('cohere')
+                self.send_response(200)
+                self.send_header('Transfer-Encoding', 'chunked')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.send_header('Content-Type', 'text/event-stream; charset=utf-8')
+                self.send_header('Connection', 'keep-alive')
+                self.end_headers()
+                self.wfile.write(f'{len(data):X}'.encode('utf-8'))
+                self.wfile.write(b'\r\n')
+                self.wfile.write(data)
+                self.wfile.write(b'\r\n')
+                self.wfile.write(b'0\r\n\r\n')
+                self.wfile.flush()
+                return
             try:
                 data = data.decode('utf-8')
             except:
                 data = str(data)[2:-1]
             msg = f'Error: http status {s}. Error message from {url}: {data}'
+            # special case for cohere
             if(s == 200):
-                msg = f'Error: no transfer-encoding header provided. Error message from {url}: {data}'
+                msg += ' This means an error occurred, but that service doesn\'t provide error message, and \
+                    has status 200. But this is an error, may due to invalid api key.'
+            # for zhipu
+            if('"code":"1210"' in msg):
+                msg += ' 这个错误来自智谱AI, 原因大概率是 temperature 和 top_p 设置不当。请注意, 智谱AI要求 temperature 和 top_p 都是 严格大于0, 严格小于1。'
             data = {
                 "error": {
                     "message": msg, 
@@ -322,36 +346,6 @@ class Request(BaseHTTPRequestHandler):
             self.wfile.write(data)
             self.wfile.flush()
             return
-        # print('stream')
-        self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Content-Type', 'text/event-stream; charset=utf-8')
-        self.send_header('Transfer-Encoding', 'chunked')
-        self.send_header('Connection', 'keep-alive')
-        self.end_headers()
-        ans = answer
-        ended = False
-        while(ended == False):
-            try:
-                sleep(0.1)
-                tmp = ans[0:10]
-                ans = ans[10:]
-                data = {"id":"chatcmpl-9ipfOZcUIw8DEQe4q8ncQXTK8xywv","object":"chat.completion.chunk","created":1720472066,"model":"gpt-4-0613","system_fingerprint":None,"choices":[{"index":0,"delta":{"content":tmp},"logprobs":None,"finish_reason":None}],"usage":None}
-                data = json.dumps(data, ensure_ascii=False)
-                data = 'data: ' + data + '\n\n'
-                if(tmp == ''):
-                    data = ''
-                    self.wfile.write(b'E\r\ndata: [DONE]\n\n\r\n')
-                    self.wfile.write(b'0\r\n\r\n')
-                    self.wfile.flush()
-                    break
-                data = data.encode('utf-8')
-                self.wfile.write(f"{len(data):X}".encode('utf-8'))
-                self.wfile.write(b'\r\n')
-                self.wfile.write(data)
-                self.wfile.write(b'\r\n')
-            except (BrokenPipeError, ConnectionResetError):
-                break
         
     
     def do_OPTIONS(self):
@@ -534,7 +528,7 @@ def start_server_async() -> None:
 
 if __name__ == '__main__':
     create_server(9025, 'jtc1246', './database.db', './log.txt')
-    add_model('http://jtc1246.com:9002/v1/',COHERE_API_KEY,'command-r-plus','cohere')
+    add_model('http://jtc1246.com:9002/v1/',COHERE_API_KEY+'f','command-r-plus','cohere')
     # add_models('https://api.openai.com/v1/', OPENAI_API_KEY, ['gpt-3.5-turbo','gpt-4'], prefix='openai-')
     add_model('https://api.openai.com/v1/', OPENAI_API_KEY, 'gpt-4-turbo-2024-04-09', 'openai-gpt-4')
     add_model('https://api.openai.com/v1/', OPENAI_API_KEY, 'gpt-4o-2024-05-13', 'openai-gpt-4o')
