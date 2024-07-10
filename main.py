@@ -248,10 +248,29 @@ class Request(BaseHTTPRequestHandler):
         else:
             url = base_url + '/chat/completions'
         body['model'] = origin_name
-        for i in range(0, len(body['messages'])):
-            # print(body['messages'])
-            # print(body['messages'][i])
-            # print(body['messages'][i]['content'])
+        for i in range(len(body['messages'])-1, -1, -1):
+            if(len(body['messages'][i]['content']) == 0):
+                body['messages'].pop(i)
+                continue
+            if(len(body['messages'][i]['content'])>1 or body['messages'][i]['content'][0]['type'] != 'text'):
+                self.send_response(404)
+                data = {
+                    "error": {
+                        "message": "Image and other type of message is not supported.", 
+                        "type": "invalid_request_error",
+                        "param": None,
+                        "code": None
+                    }
+                }
+                data = json.dumps(data, ensure_ascii=False).encode('utf-8')
+                self.send_header('Content-Length', len(data))
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Connection', 'keep-alive')
+                self.end_headers()
+                self.wfile.write(data)
+                self.wfile.flush()
+                return
             body['messages'][i]['content'] = body['messages'][i]['content'][0]['text']
         body = json.dumps(body, ensure_ascii=False).encode('utf-8')
         header = {
@@ -261,7 +280,7 @@ class Request(BaseHTTPRequestHandler):
         }
         stream_id = get_hash(str(time()) + str(randint(0, 10000000000)) + str(body))
         resp = requests.post(url, headers=header, data=body, stream=True)
-        if(resp.status_code == 200):
+        if(resp.status_code == 200 and resp.headers.get('Transfer-Encoding') == 'chunked'):
             # use stream here
             client_queue = Queue() # sent to client
             log_queue = Queue() # for logs
@@ -282,7 +301,9 @@ class Request(BaseHTTPRequestHandler):
                 data = data.decode('utf-8')
             except:
                 data = str(data)[2:-1]
-            msg = f'Error: http status {s}. {data}'
+            msg = f'Error: http status {s}. Error message from {url}: {data}'
+            if(s == 200):
+                msg = f'Error: no transfer-encoding header provided. Error message from {url}: {data}'
             data = {
                 "error": {
                     "message": msg, 
