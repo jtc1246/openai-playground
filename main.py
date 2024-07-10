@@ -188,6 +188,7 @@ class Request(BaseHTTPRequestHandler):
     def do_POST(self):
         path = self.path
         print(path)
+        # return 404 for incorrect url
         if(not path.startswith('/v1/chat/completions/')):
             self.send_response(404)
             self.send_header('Content-Length', 0)
@@ -198,6 +199,7 @@ class Request(BaseHTTPRequestHandler):
             return
         pw = path[len('/v1/chat/completions/'):]
         pw = hexToStr(pw)
+        # password incorrect
         if(pw != PASSWORD):
             self.send_response(404)
             data = {
@@ -219,8 +221,8 @@ class Request(BaseHTTPRequestHandler):
             return
         body = self.rfile.read(int(self.headers['Content-Length']))
         body = json.loads(body)
-        print(body)
         model_name = body['model']
+        # model not found
         if(model_name not in models):
             self.send_response(404)
             data = {
@@ -240,6 +242,8 @@ class Request(BaseHTTPRequestHandler):
             self.wfile.write(data)
             self.wfile.flush()
             return
+        print(body)
+        # set url
         base_url = model_info[model_name][0]
         api_key = model_info[model_name][1]
         origin_name = model_info[model_name][2]
@@ -249,6 +253,7 @@ class Request(BaseHTTPRequestHandler):
         else:
             url = base_url + '/chat/completions'
         body['model'] = origin_name
+        # update json data, change to old version
         for i in range(len(body['messages'])-1, -1, -1):
             if(len(body['messages'][i]['content']) == 0):
                 body['messages'].pop(i)
@@ -281,6 +286,7 @@ class Request(BaseHTTPRequestHandler):
         }
         stream_id = get_hash(str(time()) + str(randint(0, 10000000000)) + str(body))
         resp = requests.post(url, headers=header, data=body, stream=True)
+        # success, in transfer-encoding chunked mode
         if(resp.status_code == 200 and resp.headers.get('Transfer-Encoding') == 'chunked'):
             # use stream here
             client_queue = Queue() # sent to client
@@ -295,14 +301,12 @@ class Request(BaseHTTPRequestHandler):
             log_queue.put(False)
             return
         else:
-            print('error handling')
             # error handling, don't use stream
             s = resp.status_code
             data = resp.content
             # special case for cohere, https://github.com/missuo/cohere2openai
             # it will not have transfer-encoding chunked if response is too short.
             if(b'data: [DONE]' in data):
-                print('cohere')
                 self.send_response(200)
                 self.send_header('Transfer-Encoding', 'chunked')
                 self.send_header('Access-Control-Allow-Origin', '*')
@@ -316,6 +320,8 @@ class Request(BaseHTTPRequestHandler):
                 self.wfile.write(b'0\r\n\r\n')
                 self.wfile.flush()
                 return
+            # put http status and error msg from that service in error message, as detailed as possible
+            # also give some hint in some case
             try:
                 data = data.decode('utf-8')
             except:
