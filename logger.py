@@ -25,9 +25,14 @@ def set_base_path(p: str):
 
 
 def write_raw_api_responses(stream_id: str, data: bytes, index: int):
+    try:
+        data = data.decode('utf-8')
+        data = str([data])
+    except:
+        data = str(data)
     index = str(index)
     index = index + ' ' * (5 - len(index))
-    content = 'RAW_RESP' + ',  ' + stream_id + '  ' + index + ' ' + str(data)
+    content = 'RAW_RESP' + ',  ' + stream_id + '  ' + index + ' ' + data
     log_queue.put(content)
 
 
@@ -81,9 +86,14 @@ def write_post_header(path: str, ip, header, desc):
 
 
 def write_post_raw(path: str, ip: str, header: str, data: bytes, stream_id: str):
+    try:
+        data = data.decode('utf-8')
+        data = str([data])
+    except:
+        data = str(data)
     ip = ip + ' ' * (15 - len(ip))
     path = path + ' ' * (50 - len(path))
-    content = 'POST_RAW' + ',  ' + stream_id + '  ' + path + '  ' + ip + '  ' + json.dumps(header, ensure_ascii=False) + '  ' + str(data)[2:-1] # bytes
+    content = 'POST_RAW' + ',  ' + stream_id + '  ' + path + '  ' + ip + '  ' + json.dumps(header, ensure_ascii=False) + '  ' + data # bytes
     log_queue.put(content)
 
 

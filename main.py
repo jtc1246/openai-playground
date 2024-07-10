@@ -172,8 +172,8 @@ class Request(BaseHTTPRequestHandler):
         model_name = body['model']
         # model not found
         if(model_name not in models):
-            write_plain_text(f'Model {model_name} not found in {models}.')
-            print(f'{stream_id}  Model {model_name} not found in {models}.')
+            write_plain_text(f'{stream_id}  Model {model_name} not found in {models}.')
+            print(f'Model {model_name} not found.')
             self.send_response(404)
             data = {
                 "error": {
@@ -211,6 +211,7 @@ class Request(BaseHTTPRequestHandler):
                 continue
             if(len(body['messages'][i]['content'])>1 or body['messages'][i]['content'][0]['type'] != 'text'):
                 write_plain_text(f'{stream_id}  Unsupported type of message received.')
+                print('Unsupported type of message received.')
                 self.send_response(404)
                 data = {
                     "error": {
