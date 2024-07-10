@@ -2,6 +2,7 @@ import os
 from queue import Queue
 from time import time
 from _thread import start_new_thread
+import json
 
 
 LOG_BASE_PATH = ''
@@ -11,7 +12,7 @@ log_file = None
 log_queue = Queue()
 
 
-__all__ = ['set_base_path', 'write_raw_api_responses']
+__all__ = ['set_base_path', 'write_raw_api_responses', 'write_chat_completions_api', 'write_chat_error', 'write_plain_text', 'write_config_log', 'write_get_log', 'write_post_illegal', 'write_post_raw']
 
 
 def set_base_path(p: str):
@@ -38,8 +39,55 @@ def write_chat_completions_api(stream_id: str, data: str, request_model: str, us
         used_model = used_model[-30:]
     request_model = request_model + ' ' * (30 - len(request_model))
     used_model = used_model + ' ' * (30 - len(used_model))
-    content = 'CHAT_API' + ',  ' + stream_id + '  R:' + request_model + '  U:' + used_model + '  ' + data
+    content = 'CHAT_API' + ',  ' + stream_id + '  R:' + request_model + '  U:' + used_model + '  ' + data + '  ' + base_url
     log_queue.put(content)
+
+
+def write_chat_error(stream_id: str, data: str, status: int):
+    status = str(status)
+    status = status + ' ' * (3 - len(status))
+    content = 'CHAT_ERR' + ',  ' + stream_id + '  ' + status + '  ' + data
+    log_queue.put(content) 
+
+
+def write_plain_text(data: str):
+    content = 'PLN_TEXT' + ',  ' + data
+    log_queue.put(content)
+
+
+def write_config_log(data: str):
+    content = 'CONFIG_' + ',  ' + data
+    log_queue.put(content)
+
+
+def write_get_log(path, ip, header, status):
+    status = str(status)
+    status = status + ' ' * (3 - len(status))
+    ip = ip + ' ' * (15 - len(ip))
+    path = path + ' ' * (50 - len(path))
+    content = 'HTTP_GET' + ',  ' + path + '  ' + status + '  ' + ip + '  ' + json.dumps(header, ensure_ascii=False)
+    log_queue.put(content)
+
+
+def write_post_header(path: str, ip, header, desc):
+    '''
+    This is only for wrong path or password, wrong model name doesn't belong to this
+    '''
+    desc = desc + ' ' * (20 - len(desc))
+    ip = ip + ' ' * (15 - len(ip))
+    path = path + ' ' * (50 - len(path))
+    content = 'POST_HDR,  ' + desc + '  ' + path + '  ' + ip + '  ' + json.dumps(header, ensure_ascii=False)
+    log_queue.put(content)
+
+
+def write_post_raw(path: str, ip: str, header: str, data: bytes, stream_id: str):
+    ip = ip + ' ' * (15 - len(ip))
+    path = path + ' ' * (50 - len(path))
+    content = 'POST_RAW' + ',  ' + stream_id + '  ' + path + '  ' + ip + '  ' + json.dumps(header, ensure_ascii=False) + '  ' + str(data)[2:-1] # bytes
+    log_queue.put(content)
+
+
+# def write
 
 
 def write_queue(q: Queue, file):
