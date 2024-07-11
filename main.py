@@ -36,6 +36,7 @@ def init():
         print('Failed to fetch JS file')
         raise Exception('Failed to fetch JS file')
     JS_CONTENT = tmp['text']
+    write_plain_text('JS file loaded successfully.')
     # currently don't need to encode according model list, so just pre generate
     JS_CONTENT = endode_js(JS_CONTENT)
 

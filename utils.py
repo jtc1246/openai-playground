@@ -3,7 +3,7 @@ from myHttp import http
 from hashlib import sha256
 from queue import Queue
 from logger import write_raw_api_responses, write_config_log, write_plain_response,\
-                   add_response, update_response, set_token_usage
+                   add_response, update_response, set_token_usage, write_plain_text
 
 __all__ = ['endode_js', 'encode_engines', 'encode_v1_models',
            'get_models_from_url', 'get_models_from_url_ollama',
@@ -18,20 +18,26 @@ def endode_js(js: str):
     found_replacer = True
     if (js.find('/^gpt-3\.5-turbo(?!-instruct)(?!-base)|^gpt-4(?!-base)|^gpt-dv/') >= 0):
         # print('found')
+        write_plain_text('REPLACER_FOUND  /^gpt-3\.5-turbo(?!-instruct)(?!-base)|^gpt-4(?!-base)|^gpt-dv/')
         pass
     else:
         # print('not found')
+        write_plain_text('REPLACER_NOT_FOUND  /^gpt-3\.5-turbo(?!-instruct)(?!-base)|^gpt-4(?!-base)|^gpt-dv/')
         found_replacer = False
     js = js.replace('/^gpt-3\.5-turbo(?!-instruct)(?!-base)|^gpt-4(?!-base)|^gpt-dv/', '/^.*$/')
     if (js.find('/^gpt-4[a-z]?-(?!vision)(?!base).*/') >= 0):
         # print('found')
+        write_plain_text('REPLACER_FOUND  /^gpt-4[a-z]?-(?!vision)(?!base).*/')
         pass
     else:
         # print('not found')
+        write_plain_text('REPLACER_NOT_FOUND  /^gpt-4[a-z]?-(?!vision)(?!base).*/')
         found_replacer = False
     if(found_replacer == False):
+        write_plain_text('Warning: Some text that needed to replace is not found in the current js file (because it has changed from origin one). The website might work normally, might not work. If it doesn\'t work, this may be a reason.')
         print('Warning: Some text that needed to replace is not found in the current js file (because it has changed from origin one). The website might work normally, might not work. If it doesn\'t work, this may be a reason.')
     js = js.replace('/^gpt-4[a-z]?-(?!vision)(?!base).*/', '/^.*$/')
+    js = js.replace('||2049', '||4097')
     js = js.replace('"/v1/chat/completions"', '"/v1/chat/completions/"+jtc_password')
     with open('append.js', 'r') as f:
         tmp = f.read()
