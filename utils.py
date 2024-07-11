@@ -267,6 +267,13 @@ def generate_models_log(model_info:dict):
     return json.dumps(model_info, ensure_ascii=False)
 
 
+def star_api_key(api_key:str) -> str:
+    l = len(api_key)
+    s = l // 6
+    e = l - s
+    return api_key[:s] + '*' * (l - s * 2) + api_key[e:]
+
+
 if __name__ == '__main__':
     from keys import OPENAI_API_KEY, COHERE_API_KEY, OLLAMA_API_KEY
     print(get_models_from_url('https://api.openai.com/v1', OPENAI_API_KEY))

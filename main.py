@@ -6,7 +6,7 @@ from _thread import start_new_thread
 from utils import endode_js, encode_engines, encode_v1_models,\
                   get_models_from_url, get_models_from_url_ollama,\
                   get_hash, handle_stream_data, handle_log_queue,\
-                  generate_models_log
+                  generate_models_log, star_api_key
 from mySecrets import hexToStr
 import json
 import requests
@@ -376,7 +376,7 @@ def add_model(base_url:str, api_key:str, model_name:str, new_name: str=None) -> 
     2. model_name: need to be exactly same as the name in your service
     3. new_name: the name you want to show in the playground, if not provided, will be same as model_name
     '''
-    write_config_log(f"add_model: base_url: {base_url}, api_key: {api_key}, model_name: {model_name}, new_name: {new_name}")
+    write_config_log(f"add_model: base_url: {base_url}, api_key: {star_api_key(api_key)}, model_name: {model_name}, new_name: {new_name}")
     if(not base_url.startswith('http://') and not base_url.startswith('https://')):
         raise ValueError('Invalid url. Url should start with http:// or https://')
     if(base_url[-1] == '/'):
@@ -408,7 +408,7 @@ def add_models(base_url:str, api_key:str, models_:list[str] = [], prefix:str='',
     2. models_: a list of model names you want to add, model name should be exactly same as the name in your service. If it is an empty list, will add all available models.
     3. prefix and postfix: the name shown in the playground will be `prefix + model_name + postfix`
     '''
-    write_config_log(f"add_models: base_url: {base_url}, api_key: {api_key}, models_: {models_}, prefix: {prefix}, postfix: {postfix}")
+    write_config_log(f"add_models: base_url: {base_url}, api_key: {star_api_key(api_key)}, models_: {models_}, prefix: {prefix}, postfix: {postfix}")
     if(not base_url.startswith('http://') and not base_url.startswith('https://')):
         raise ValueError('Invalid url. Url should start with http:// or https://')
     if(base_url[-1] == '/'):
@@ -458,7 +458,7 @@ def add_ollama_model(base_url:str, api_key:str, model_name:str, new_name: str=No
     
     For api_key, it's not checked, but you must provide, even an empty str is OK.
     '''
-    write_config_log(f"add_ollama_model: base_url: {base_url}, api_key: {api_key}, model_name: {model_name}, new_name: {new_name}")
+    write_config_log(f"add_ollama_model: base_url: {base_url}, api_key: {star_api_key(api_key)}, model_name: {model_name}, new_name: {new_name}")
     if(not base_url.startswith('http://') and not base_url.startswith('https://')):
         raise ValueError('Invalid url. Url should start with http:// or https://')
     if(base_url[-1] == '/'):
@@ -490,7 +490,7 @@ def add_ollama_models(base_url:str, api_key:str, models_:list[str] = [], prefix:
     
     For api_key, it's not checked, but you must provide, even an empty str is OK.
     '''
-    write_config_log(f"add_ollama_models: base_url: {base_url}, api_key: {api_key}, models_: {models_}, prefix: {prefix}, postfix: {postfix}")
+    write_config_log(f"add_ollama_models: base_url: {base_url}, api_key: {star_api_key(api_key)}, models_: {models_}, prefix: {prefix}, postfix: {postfix}")
     if(not base_url.startswith('http://') and not base_url.startswith('https://')):
         raise ValueError('Invalid url. Url should start with http:// or https://')
     if(base_url[-1] == '/'):
@@ -540,7 +540,7 @@ def add_zhipu_doubao(base_url: str, api_key:str, model_name:str, new_name: str=N
     
     其它和 `add_model` 相同, 这个函数没有 一次添加多个模型的版本
     '''
-    write_config_log(f"add_zhipu_doubao: base_url: {base_url}, api_key: {api_key}, model_name: {model_name}, new_name: {new_name}")
+    write_config_log(f"add_zhipu_doubao: base_url: {base_url}, api_key: {star_api_key(api_key)}, model_name: {model_name}, new_name: {new_name}")
     if(not base_url.startswith('http://') and not base_url.startswith('https://')):
         raise ValueError('Invalid url. Url should start with http:// or https://')
     if(base_url[-1] == '/'):
