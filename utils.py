@@ -10,6 +10,10 @@ __all__ = ['endode_js', 'encode_engines', 'encode_v1_models',
            'get_hash', "handle_stream_data"]
 
 
+def get_connection_header():
+    return 'close'
+
+
 def endode_js(js: str):
     '''
     Modify the js file that it thinks all model names are valid.
@@ -199,7 +203,7 @@ def handle_stream_data(request_obj, data_queue:Queue):
     request_obj.send_header('Access-Control-Allow-Origin', '*')
     request_obj.send_header('Content-Type', 'text/event-stream; charset=utf-8')
     request_obj.send_header('Transfer-Encoding', 'chunked')
-    request_obj.send_header('Connection', 'keep-alive')
+    request_obj.send_header('Connection', get_connection_header())
     request_obj.end_headers()
     try:
         while True:

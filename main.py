@@ -6,13 +6,14 @@ from _thread import start_new_thread
 from utils import endode_js, encode_engines, encode_v1_models,\
                   get_models_from_url, get_models_from_url_ollama,\
                   get_hash, handle_stream_data, handle_log_queue,\
-                  generate_models_log, star_api_key
+                  generate_models_log, star_api_key, get_connection_header
 from mySecrets import hexToStr
 import json
 import requests
 from random import randint
 from queue import Queue
 import os
+import socket
 from logger import write_chat_completions_api, set_base_path, write_raw_api_responses,\
                    write_chat_error, write_plain_text, write_get_log, write_post_header,\
                    write_post_raw, write_config_log, add_request
@@ -54,7 +55,7 @@ class Request(BaseHTTPRequestHandler):
             write_get_log(path, self.client_address[0], dict(self.headers), 404)
             self.send_response(404)
             self.send_header('Content-Length', 0)
-            self.send_header('Connection', 'keep-alive')
+            self.send_header('Connection', get_connection_header())
             self.end_headers()
             self.wfile.flush()
             return
@@ -63,7 +64,7 @@ class Request(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
-            self.send_header('Connection', 'keep-alive')
+            self.send_header('Connection', get_connection_header())
             data = encode_v1_models(models).encode('utf-8')
             self.send_header('Content-Length', len(data))
             self.end_headers()
@@ -75,7 +76,7 @@ class Request(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
-            self.send_header('Connection', 'keep-alive')
+            self.send_header('Connection', get_connection_header())
             data = encode_engines(models).encode('utf-8')
             self.send_header('Content-Length', len(data))
             self.end_headers()
@@ -94,7 +95,7 @@ class Request(BaseHTTPRequestHandler):
                 self.send_response(401)
                 self.send_header('Access-Control-Allow-Origin', '*')
                 self.send_header('Content-Type', 'application/json')
-                self.send_header('Connection', 'keep-alive')
+                self.send_header('Connection', get_connection_header())
                 self.send_header('Content-Length', 2)
                 self.end_headers()
                 self.wfile.write(b'{}')
@@ -105,7 +106,7 @@ class Request(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Access-Control-Allow-Origin', '*')
             self.send_header('Content-Type', 'application/json')
-            self.send_header('Connection', 'keep-alive')
+            self.send_header('Connection', get_connection_header())
             self.send_header('Content-Length', 2)
             self.end_headers()
             self.wfile.write(b'{}')
@@ -116,7 +117,7 @@ class Request(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Access-Control-Allow-Origin', '*')
             self.send_header('Content-Type', 'application/javascript')
-            self.send_header('Connection', 'keep-alive')
+            self.send_header('Connection', get_connection_header())
             js = JS_CONTENT # currently don't need to encode according model list
             js = js.encode('utf-8')
             self.send_header('Content-Length', len(js))
@@ -127,6 +128,7 @@ class Request(BaseHTTPRequestHandler):
             return
         
     def do_POST(self):
+        print(self.client_address[1])
         path = self.path
         print(path)
         # return 404 for incorrect url
@@ -135,7 +137,7 @@ class Request(BaseHTTPRequestHandler):
             self.send_response(404)
             self.send_header('Content-Length', 0)
             self.send_header('Access-Control-Allow-Origin', '*')
-            self.send_header('Connection', 'keep-alive')
+            self.send_header('Connection', get_connection_header())
             self.end_headers()
             self.wfile.flush()
             return
@@ -160,12 +162,14 @@ class Request(BaseHTTPRequestHandler):
             self.send_header('Content-Length', len(data))
             self.send_header('Access-Control-Allow-Origin', '*')
             self.send_header('Content-Type', 'application/json')
-            self.send_header('Connection', 'keep-alive')
+            self.send_header('Connection', get_connection_header())
             self.end_headers()
             self.wfile.write(data)
             self.wfile.flush()
             return
         write_post_header(path, self.client_address[0], dict(self.headers), 'Login success')
+        # print(self.connection)
+        # print(self.connection.shutdown(socket.SHUT_RDWR))
         body = self.rfile.read(int(self.headers['Content-Length']))
         stream_id = get_hash(str(time()) + str(randint(0, 10000000000)) + str(body))
         full_id = stream_id
@@ -190,7 +194,7 @@ class Request(BaseHTTPRequestHandler):
             self.send_header('Content-Length', len(data))
             self.send_header('Access-Control-Allow-Origin', '*')
             self.send_header('Content-Type', 'application/json')
-            self.send_header('Connection', 'keep-alive')
+            self.send_header('Connection', get_connection_header())
             self.end_headers()
             self.wfile.write(data)
             self.wfile.flush()
@@ -227,7 +231,7 @@ class Request(BaseHTTPRequestHandler):
                 self.send_header('Content-Length', len(data))
                 self.send_header('Access-Control-Allow-Origin', '*')
                 self.send_header('Content-Type', 'application/json')
-                self.send_header('Connection', 'keep-alive')
+                self.send_header('Connection', get_connection_header())
                 self.end_headers()
                 self.wfile.write(data)
                 self.wfile.flush()
@@ -269,7 +273,7 @@ class Request(BaseHTTPRequestHandler):
                 # self.send_header('Transfer-Encoding', 'chunked')
                 # self.send_header('Access-Control-Allow-Origin', '*')
                 # self.send_header('Content-Type', 'text/event-stream; charset=utf-8')
-                # self.send_header('Connection', 'keep-alive')
+                # self.send_header('Connection', get_connection_header())
                 # self.end_headers()
                 # self.wfile.write(f'{len(data):X}'.encode('utf-8'))
                 # self.wfile.write(b'\r\n')
@@ -315,7 +319,7 @@ class Request(BaseHTTPRequestHandler):
             self.send_header('Content-Length', len(data))
             self.send_header('Access-Control-Allow-Origin', '*')
             self.send_header('Content-Type', 'application/json')
-            self.send_header('Connection', 'keep-alive')
+            self.send_header('Connection', get_connection_header())
             self.end_headers()
             self.wfile.write(data)
             self.wfile.flush()
@@ -337,6 +341,10 @@ class Request(BaseHTTPRequestHandler):
             super().handle()
         except (BrokenPipeError, ConnectionResetError):
             pass
+        self.wfile.close()
+        self.rfile.close()
+        # self.connection.close()
+        self.connection.shutdown(socket.SHUT_RDWR)
 
 
 init()
