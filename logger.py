@@ -4,6 +4,7 @@ from time import time
 from _thread import start_new_thread
 import json
 import sqlite3
+from threading import Lock
 
 
 LOG_BASE_PATH = ''
@@ -12,6 +13,7 @@ database = None
 
 
 log_queue = Queue()
+database_lock = Lock()
 
 
 __all__ = ['set_base_path', 'write_raw_api_responses', 'write_chat_completions_api',
@@ -151,11 +153,13 @@ def add_request(full_id: str, data, user_model_name: str, origin_model_name: str
     if(type(data) != str):
         data = json.dumps(data, ensure_ascii=False)
     t = int(round(time()*1000000))
+    database_lock.acquire()
     database.execute('''
         Insert Into All_Requests (id, data, time, has_response, user_model_name, origin_model_name)
         Values (?, ?, ?, ?, ?, ?);
                      ''', (full_id, data, t, False, user_model_name, origin_model_name))
     database.commit()
+    database_lock.release()
 
 
 def set_has_response(full_id: str):
@@ -195,32 +199,38 @@ def extract_all_responses():
 
 def add_response(full_id:str, data:str):
     t = int(round(time()*1000000))
+    database_lock.acquire()
     database.execute('''
         Insert Into All_Responses (id, data, start_time, last_update_time, ended)
         Values (?, ?, ?, ?, ?);
                      ''', (full_id, data, t, t, False))
     set_has_response(full_id)
     database.commit()
+    database_lock.release()
     
 
 def update_response(full_id: str, data: str):
     t = int(round(time()*1000000))
+    database_lock.acquire()
     database.execute('''
         Update All_Responses
         Set data = ?, last_update_time = ?
         Where id = ?;
                      ''', (data, t, full_id))
     database.commit()
+    database_lock.release()
 
 
 def set_token_usage(full_id: str, in_tokens: int = None, out_tokens: int = None):
     t = int(round(time()*1000000))
+    database_lock.acquire()
     database.execute('''
         Update All_Responses
         Set in_tokens = ?, out_tokens = ?, last_update_time = ?, ended = True
         Where id = ?;
                      ''', (in_tokens, out_tokens, t, full_id))
     database.commit()
+    database_lock.release()
 
 
 if __name__ == '__main__':
