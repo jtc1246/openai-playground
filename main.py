@@ -118,6 +118,8 @@ class Request(BaseHTTPRequestHandler):
             self.send_header('Content-Type', 'application/javascript')
             self.send_header('Connection', 'keep-alive')
             js = JS_CONTENT # currently don't need to encode according model list
+            with open('append.js') as f:
+                js = f.read() + js
             js = js.encode('utf-8')
             self.send_header('Content-Length', len(js))
             self.send_header

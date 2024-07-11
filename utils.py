@@ -39,9 +39,9 @@ def endode_js(js: str):
     js = js.replace('/^gpt-4[a-z]?-(?!vision)(?!base).*/', '/^.*$/')
     js = js.replace('||2049', '||4097')
     js = js.replace('"/v1/chat/completions"', '"/v1/chat/completions/"+jtc_password')
-    with open('append.js', 'r') as f:
-        tmp = f.read()
-        js += tmp
+    # with open('append.js', 'r') as f:
+    #     tmp = f.read()
+    #     js += tmp
     return js
 
 
