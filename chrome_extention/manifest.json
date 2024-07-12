@@ -1,0 +1,13 @@
+{
+  "manifest_version": 2,
+  "name": "Openai Playground",
+  "version": "1.0",
+  "permissions": [
+    "webRequest",
+    "webRequestBlocking",
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}

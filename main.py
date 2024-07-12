@@ -46,6 +46,7 @@ model_info = {} # {name: (base_url, api_key, origin_name, is_ollama:bool)}
 
 
 class Request(BaseHTTPRequestHandler):
+    protocol_version = "HTTP/1.1"
     def do_GET(self):
         path=self.path
         print(path)
@@ -324,6 +325,7 @@ class Request(BaseHTTPRequestHandler):
     
     def do_OPTIONS(self):
         self.send_response(200)
+        self.send_header('Content-Length', 0)
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Headers', 'openai-organization,content-type,authorization')
         self.end_headers()

@@ -206,7 +206,7 @@ def handle_stream_data(request_obj, data_queue:Queue):
             data = data_queue.get()
             if(data == False):
                 break
-            request_obj.wfile.write(f"{len(data):X}".encode('utf-8'))
+            request_obj.wfile.write(f"{len(data):x}".encode('utf-8'))
             request_obj.wfile.write(b'\r\n')
             request_obj.wfile.write(data)
             request_obj.wfile.write(b'\r\n')
