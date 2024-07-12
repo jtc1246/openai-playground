@@ -1,16 +1,46 @@
+var enabled = false;
+var ip = '127.0.0.1';
+var port = '9025';
+
+function update_settings() {
+    chrome.storage.sync.get(['enabled', 'ip', 'port'], function(data){
+        if(data.enabled === undefined){
+            setTimeout(update_settings, 100);
+            return;
+        }
+        enabled = data.enabled;
+        if(data.ip === ''){
+            ip = '127.0.0.1';
+        } else {
+            ip = data.ip;
+        }
+        if(data.port === ''){
+            port = '9025';
+        } else {
+            port = parseInt(data.port).toString();
+        }
+        setTimeout(update_settings, 100);
+    });
+}
+
+update_settings();
+
 chrome.webRequest.onBeforeRequest.addListener(
   function(details) {
+    if(enabled === false){
+        return {};
+    }
     let url = details.url;
     if (url.includes('/static/js/main.') && url.includes('openaiapi-site.azureedge.net') && url.endsWith('.js')) {
       console.log(url);
-      return {redirectUrl: "http://127.0.0.1:9025/600c2350.js"};
+      return {redirectUrl: `http://${ip}:${port}/600c2350.js`};
     }
     if (url === 'https://api.openai.com/v1/models' ||
         url === 'https://api.openai.com/v1/engines' ||
         url.startsWith('https://api.openai.com/v1/login') ||
         url.startsWith('https://api.openai.com/v1/chat/completions/')) {
       console.log(url);
-      return {redirectUrl: `http://${details.url.replace("https://api.openai.com", "127.0.0.1:9025")}`};
+      return {redirectUrl: `http://${details.url.replace("https://api.openai.com",ip+":"+port)}`};
     }
     return {};
   },
