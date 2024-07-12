@@ -2,3 +2,6 @@
 __pycache__/
 /keys.py
 /playground_logs/
+*.egg-info/
+/build/
+/dist/
