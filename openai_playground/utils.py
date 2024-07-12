@@ -1,8 +1,9 @@
 import json
 from myHttp import http
 from hashlib import sha256
+import os
 from queue import Queue
-from logger import write_raw_api_responses, write_config_log, write_plain_response,\
+from .logger import write_raw_api_responses, write_config_log, write_plain_response,\
                    add_response, update_response, set_token_usage, write_plain_text
 
 __all__ = ['endode_js', 'encode_engines', 'encode_v1_models',
@@ -39,7 +40,9 @@ def endode_js(js: str):
     js = js.replace('/^gpt-4[a-z]?-(?!vision)(?!base).*/', '/^.*$/')
     js = js.replace('||2049', '||4097')
     js = js.replace('"/v1/chat/completions"', '"/v1/chat/completions/"+jtc_password')
-    with open('append.js', 'r') as f:
+    file_path = os.path.abspath(__file__)
+    file_path = os.path.dirname(file_path) + '/append.js'
+    with open(file_path, 'r') as f:
         tmp = f.read()
         js += tmp
     return js
@@ -275,7 +278,7 @@ def star_api_key(api_key:str) -> str:
 
 
 if __name__ == '__main__':
-    from keys import OPENAI_API_KEY, COHERE_API_KEY, OLLAMA_API_KEY
+    # from keys import OPENAI_API_KEY, COHERE_API_KEY, OLLAMA_API_KEY
     print(get_models_from_url('https://api.openai.com/v1', OPENAI_API_KEY))
     print(get_models_from_url('http://jtc1246.com:9002/v1', COHERE_API_KEY))
     print(get_models_from_url_ollama('http://127.0.0.1:11434', 'ollama'))

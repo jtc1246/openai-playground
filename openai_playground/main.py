@@ -3,7 +3,7 @@ from myHttp import http
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from time import time, sleep
 from _thread import start_new_thread
-from utils import endode_js, encode_engines, encode_v1_models,\
+from .utils import endode_js, encode_engines, encode_v1_models,\
                   get_models_from_url, get_models_from_url_ollama,\
                   get_hash, handle_stream_data, handle_log_queue,\
                   generate_models_log, star_api_key
@@ -13,7 +13,7 @@ import requests
 from random import randint
 from queue import Queue
 import os
-from logger import write_chat_completions_api, set_base_path, write_raw_api_responses,\
+from .logger import write_chat_completions_api, set_base_path, write_raw_api_responses,\
                    write_chat_error, write_plain_text, write_get_log, write_post_header,\
                    write_post_raw, write_config_log, add_request, extract_all_requests,\
                    extract_all_responses
@@ -621,7 +621,7 @@ def export_data():
 
 
 if __name__ == '__main__':
-    from keys import OPENAI_API_KEY, COHERE_API_KEY, OLLAMA_API_KEY, ZHIPU_API_KEY, KIMI_API_KEY, DOUBAO_API_KEY
+    # from keys import OPENAI_API_KEY, COHERE_API_KEY, OLLAMA_API_KEY, ZHIPU_API_KEY, KIMI_API_KEY, DOUBAO_API_KEY
     create_server(9025, 'jtc1246')
     print(export_data())
     add_model('http://jtc1246.com:9002/v1/',COHERE_API_KEY,'command-r-plus','cohere')
