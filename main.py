@@ -15,11 +15,12 @@ from queue import Queue
 import os
 from logger import write_chat_completions_api, set_base_path, write_raw_api_responses,\
                    write_chat_error, write_plain_text, write_get_log, write_post_header,\
-                   write_post_raw, write_config_log, add_request
+                   write_post_raw, write_config_log, add_request, extract_all_requests,\
+                   extract_all_responses
 
 __all__ = ['create_server', 'start_server_async',
            'add_model', 'add_models', 'add_ollama_model', 'add_ollama_models'
-           'add_zhipu_doubao']
+           'add_zhipu_doubao', 'export_data']
 
 PASSWORD = ''
 
@@ -575,9 +576,54 @@ def start_server_async() -> None:
     print(f'Server started, latest models: {generate_models_log(model_info)}')
 
 
+def export_data():
+    '''
+    Export the data of history requests and responses.
+    '''
+    all_requests = extract_all_requests()
+    all_responses = extract_all_responses()
+    all = []
+    responses_dict = {}
+    for r in all_responses:
+        responses_dict[r[0]] = r
+    for r in all_requests:
+        record = {}
+        request_id = r[0]
+        request_data = r[1]
+        request_time = r[2]
+        has_response = r[3]
+        user_model_name = r[4]
+        origin_model_name = r[5]
+        record['id'] = request_id
+        record['request_data'] = json.loads(request_data) # it must be json
+        record['request_time_us'] = request_time
+        record['has_response'] = has_response
+        record['user_model_name'] = user_model_name
+        record['origin_model_name'] = origin_model_name
+        if(has_response):
+            response = responses_dict[request_id]
+            response_data = response[1]
+            first_response_time = response[2]
+            end_time = response[3]
+            ended_successfully = response[4]
+            input_tokens = response[5]
+            output_tokens = response[6]
+            record['response_data'] = response_data
+            record['first_response_time_us'] = first_response_time
+            record['end_time_us'] = end_time
+            record['ended_successfully'] = ended_successfully
+            record['input_tokens'] = input_tokens
+            record['output_tokens'] = output_tokens
+        all.append(record)
+    return all
+            
+        
+
+
 if __name__ == '__main__':
     from keys import OPENAI_API_KEY, COHERE_API_KEY, OLLAMA_API_KEY, ZHIPU_API_KEY, KIMI_API_KEY, DOUBAO_API_KEY
     create_server(9025, 'jtc1246')
+    print(export_data())
     add_model('http://jtc1246.com:9002/v1/',COHERE_API_KEY,'command-r-plus','cohere')
     # add_models('https://api.openai.com/v1/', OPENAI_API_KEY, ['gpt-3.5-turbo','gpt-4'], prefix='openai-')
     add_model('https://api.openai.com/v1/', OPENAI_API_KEY, 'gpt-4-turbo-2024-04-09', 'openai-gpt-4')
@@ -588,6 +634,5 @@ if __name__ == '__main__':
     add_zhipu_doubao('https://open.bigmodel.cn/api/paas/v4/', ZHIPU_API_KEY, 'glm-4')
     add_zhipu_doubao('https://ark.cn-beijing.volces.com/api/v3', DOUBAO_API_KEY, 'ep-20240709181337-fmg27', 'doubao-pro-128k-240628')
     start_server_async()
-    # print(generate_models_log(model_info))
     while True:
         sleep(10)
