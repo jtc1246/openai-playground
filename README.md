@@ -34,6 +34,8 @@ pip install openai-playground
 
 #### 2.2 Install Chrome extension
 
+**Step for running python server and Chrome on different devices (ignore this if on same device)**: If want to run python server and use Chrome on different devices (i.e. you can't access to server through 127.0.0.1 or localhost in Chrome), you need to do some more steps, which are at the last on this README. This step must be done before the following. Else, you can ignore this.
+
 ```bash
 git clone https://github.com/jtc1246/openai-playground.git
 cd openai-playground
@@ -180,3 +182,25 @@ Export the data of history requests and responses.
 ## How it works
 
 The Chrome extension blocks the API requests to openai server, and forwards them to our python server. Our python server then call the API we added, and return the results to the browser.
+
+## Step for using non-127.0.0.1 IP
+
+Since Chrome don't allow to access http urls in https page (and this also can't be realized by extension), you need to modify the Chrome start command to allow this. And then use this chrome to install extension and use the playground.
+
+On macOS,
+
+```bash
+open -n -a "Google Chrome" --args --allow-running-insecure-content --user-data-dir="/tmp/chrome_dev_session"
+```
+
+On Windows,
+
+```bash
+"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" --allow-running-insecure-content --user-data-dir="%TEMP%\chrome_dev_session"
+```
+
+On Linux,
+
+```bash
+google-chrome --allow-running-insecure-content --user-data-dir="/tmp/chrome_dev_session"
+```

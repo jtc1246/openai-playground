@@ -237,6 +237,19 @@ def construct_response(data: bytes):
     return result
 
 
+def get_usage(data: bytes):
+    data = data.decode('utf-8')[:-2] # remove the last 2 \n
+    parts = data.split('\n\n')
+    last_msg = parts[-2]
+    last_msg = json.loads(last_msg[6:])
+    try:
+        in_tokens = last_msg['usage']['prompt_tokens']
+        out_tokens = last_msg['usage']['completion_tokens']
+        return (in_tokens, out_tokens)
+    except:
+        return (None, None)
+
+
 def handle_log_queue(log_queue:Queue, stream_id:str, full_id:str):
     index = 0
     data_till_now = b''
@@ -246,8 +259,10 @@ def handle_log_queue(log_queue:Queue, stream_id:str, full_id:str):
         data = log_queue.get()
         if (data == False):
             write_raw_api_responses(stream_id, "END OF RESPONSE", index)
-            write_plain_response(stream_id, str([latest_resp]) + ' FINISHED', index)
-            set_token_usage(full_id)
+            in_tokens, out_tokens = get_usage(data_till_now)
+            print(f'In tokens: {in_tokens}, out tokens: {out_tokens}')
+            write_plain_response(stream_id, str([latest_resp]) + ' FINISHED  ' + f'In: {in_tokens}, Out: {out_tokens}', index)
+            set_token_usage(full_id, in_tokens, out_tokens)
             break
         data_till_now += data
         latest_resp = construct_response(data_till_now)
