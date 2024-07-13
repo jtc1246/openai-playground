@@ -176,3 +176,7 @@ def export_data():
 ```
 
 Export the data of history requests and responses.
+
+## How it works
+
+The Chrome extension blocks the API requests to openai server, and forwards them to our python server. Our python server then call the API we added, and return the results to the browser.
