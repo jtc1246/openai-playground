@@ -3,6 +3,8 @@ from setuptools import setup
 with open("README.md", "r") as f:
     long_description = f.read()
 
+long_description = long_description.replace('resources/demo_2x_speed.gif', 'https://github.com/jtc1246/openai-playground/blob/main/resources/demo_2x_speed.gif?raw=true')
+
 setup(
     name='openai-playground',
     version='1.0.1',
