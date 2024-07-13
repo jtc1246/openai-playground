@@ -15,6 +15,9 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     packages=['openai_playground'],
+    package_data={
+        'openai_playground': ['*.js']
+    },
     install_requires=['mySecrets', 'myHttp', 'requests'],
     python_requires='>=3.9',
     platforms=["all"],

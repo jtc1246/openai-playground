@@ -54,7 +54,118 @@ Do basic setups (port, password, storage path, etc.) in python, you can see an e
 
 1. Click this extension icon, then it will show the setup page. 
 2. Select the "Enable" checkbox, to enable it. 
-3. Enter the IP (or domain) and port, then click "Set" to save settings. 
-4. Click "Go" to go to OpenAI Playground (playground\.openai.com/playground).
+3. Enter the IP (or domain) and port, then click "Set" to save the settings. 
+4. Click "Go" to go to OpenAI Playground (platform\.openai.com/playground).
 
 <img src="resources/extension_page.png" width="40%">
+
+## Python Functions
+
+You can see an example in [example.py](example.py).
+
+### General introduction
+
+You need to do following things in the python code:
+
+1. Set the port and password of this server. (use `create_server` function)
+2. Add models, need to input base url, your api key, and model name. (have 5 functions here, will be introduced later) 
+3. Start the server. (use `start_server_async` function)
+4. Use other operations to block the main thread, because `start_server_async` will return immediately and run in background. (just sleep is OK)
+
+### Functions
+
+#### 1. `create_server`
+
+```python
+def create_server(port:int, password:str, data_dir:str='./playground_logs') -> None:
+```
+
+Create the playground server. Just create, will not start. You need to add models to it and then call `start_server_async` later.
+
+Arguments:
+
+1. password: the password the needs to be input in the browser, for authorization
+
+2. data_dir: the directory to store the database and logs. Will create if not exists.
+
+
+
+#### 2. `add_model`
+
+```python
+def add_model(base_url:str, api_key:str, model_name:str, new_name: str=None) -> None:
+```
+
+Add a model to the playground, need openai format API. Need to implement both `<base_url>/models` and `<base_url>/chat/completions`
+
+Arguments:
+
+1. base_url: should include `/v1` if it's openai, start with `http://` or `https://`. Either have or not have the last `/` is OK. E.g. for openai, it should be `https://api.openai.com/v1`. It will access `<base_url>/models` and `<base_url>/chat/completions`
+2. model_name: need to be exactly same as the name in your service
+3. new_name: the name you want to show in the playground, if not provided, will be same as model_name
+
+#### 3. `add_models`
+
+```python
+def add_models(base_url:str, api_key:str, models_:list[str] = [], prefix:str='', postfix:str='') -> None:
+```
+
+Add a list of models to the playground, need openai format API. Need to implement both `<base_url>/models` and `<base_url>/chat/completions`. If models_ is empty, will add all available models.
+
+Arguments:
+
+1. base_url: should include `/v1` if it's openai, start with `http://` or `https://`. Either have or not have the last `/` is OK. E.g. for openai, it should be `https://api.openai.com/v1`. It will access `<base_url>/models` and `<base_url>/chat/completions`
+2. models_: a list of model names you want to add, model name should be exactly same as the name in your service. If it is an empty list, will add all available models.
+3. prefix and postfix: the name shown in the playground will be `prefix + model_name + postfix`
+
+#### 4. `add_ollama_model`
+
+```python
+def add_ollama_model(base_url:str, api_key:str, model_name:str, new_name: str=None) -> None:
+```
+
+For ollama, if you don't know what ollama is, just ignore this function.
+
+Mostly same as `add_model`.
+
+For base_url, on default should end with :11434, no any other path. Just ends with port number (if you change the default port, port can be different)
+
+For api_key, it's not checked, but you must provide, even an empty str is OK.
+
+#### 5. `add_ollama_models`
+
+```python
+def add_ollama_models(base_url:str, api_key:str, models_:list[str] = [], prefix:str='', postfix:str='') -> None:
+```
+
+For ollama, if you don't know what ollama is, just ignore this function.
+
+Mostly same as `add_models`.
+
+For base_url, on default should end with :11434, no any other path. Just ends with port number (if you change the default port, port can be different)
+
+For api_key, it's not checked, but you must provide, even an empty str is OK.
+
+#### 6. `add_zhipu_doubao`
+
+```python
+def add_zhipu_doubao(base_url: str, api_key:str, model_name:str, new_name: str=None) -> None:
+```
+
+For non-Chinese users, just ignore this function.
+
+针对没有 `/v1/models`、只有 `/v1/chat/completions` 的API (目前已知的有智谱AI和豆包)
+
+这个函数会直接把模型添加进去, 不会检查 可用的模型和 API key 是否正确
+
+其它和 `add_model` 相同, 这个函数没有 一次添加多个模型的版本
+
+#### 7. `start_server_async`
+
+```python
+def start_server_async() -> None:
+```
+
+Start the server, in async mode. (return immediately, run in background, the code after this can be executed)
+
+This function should be called after `create_server`.
