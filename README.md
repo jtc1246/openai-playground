@@ -85,7 +85,6 @@ Create the playground server. Just create, will not start. You need to add model
 Arguments:
 
 1. password: the password the needs to be input in the browser, for authorization
-
 2. data_dir: the directory to store the database and logs. Will create if not exists.
 
 
@@ -169,3 +168,11 @@ def start_server_async() -> None:
 Start the server, in async mode. (return immediately, run in background, the code after this can be executed)
 
 This function should be called after `create_server`.
+
+#### 8. `export_data`
+
+```python
+def export_data():
+```
+
+Export the data of history requests and responses.

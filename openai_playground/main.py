@@ -352,7 +352,6 @@ def create_server(port:int, password:str, data_dir:str='./playground_logs') -> N
     Arguments:
     
     1. password: the password the needs to be input in the browser, for authorization
-    
     2. data_dir: the directory to store the database and logs. Will create if not exists.
     '''
     global PORT, PASSWORD
