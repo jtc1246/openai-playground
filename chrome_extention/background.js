@@ -31,7 +31,8 @@ chrome.webRequest.onBeforeRequest.addListener(
         return {};
     }
     let url = details.url;
-    if (url.includes('/static/js/main.') && url.includes('openaiapi-site.azureedge.net') && url.endsWith('.js')) {
+    if ((url.includes('/static/js/main.') && url.includes('openaiapi-site.azureedge.net') && url.endsWith('.js'))
+         || (url.includes('/static/index') && url.endsWith('.js'))) {
       console.log(url);
       return {redirectUrl: `http://${ip}:${port}/600c2350.js`};
     }
