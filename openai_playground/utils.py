@@ -15,33 +15,37 @@ def endode_js(js: str):
     '''
     Modify the js file that it thinks all model names are valid.
     '''
-    origin_js = js
-    found_replacer = True
-    if (js.find('/^gpt-3\.5-turbo(?!-instruct)(?!-base)|^gpt-4(?!-base)|^gpt-dv/') >= 0):
-        # print('found')
-        write_plain_text('REPLACER_FOUND  /^gpt-3\.5-turbo(?!-instruct)(?!-base)|^gpt-4(?!-base)|^gpt-dv/')
-        pass
-    else:
-        # print('not found')
-        write_plain_text('REPLACER_NOT_FOUND  /^gpt-3\.5-turbo(?!-instruct)(?!-base)|^gpt-4(?!-base)|^gpt-dv/')
-        found_replacer = False
-    js = js.replace('/^gpt-3\.5-turbo(?!-instruct)(?!-base)|^gpt-4(?!-base)|^gpt-dv/', '/^.*$/')
-    if (js.find('/^gpt-4[a-z]?-(?!vision)(?!base).*/') >= 0):
-        # print('found')
-        write_plain_text('REPLACER_FOUND  /^gpt-4[a-z]?-(?!vision)(?!base).*/')
-        pass
-    else:
-        # print('not found')
-        write_plain_text('REPLACER_NOT_FOUND  /^gpt-4[a-z]?-(?!vision)(?!base).*/')
-        found_replacer = False
-    if(found_replacer == False):
-        write_plain_text('Warning: Some text that needed to replace is not found in the current js file (because it has changed from origin one). The website might work normally, might not work. If it doesn\'t work, this may be a reason.')
-        print('Warning: Some text that needed to replace is not found in the current js file (because it has changed from origin one). The website might work normally, might not work. If it doesn\'t work, this may be a reason.')
-    js = js.replace('/^gpt-4[a-z]?-(?!vision)(?!base).*/', '/^.*$/')
-    js = js.replace('||2049', '||4097')
-    js = js.replace('"/v1/chat/completions"', '"/v1/chat/completions/"+jtc_password')
+    # origin_js = js
+    # found_replacer = True
+    # if (js.find('/^gpt-3\.5-turbo(?!-instruct)(?!-base)|^gpt-4(?!-base)|^gpt-dv/') >= 0):
+    #     # print('found')
+    #     write_plain_text('REPLACER_FOUND  /^gpt-3\.5-turbo(?!-instruct)(?!-base)|^gpt-4(?!-base)|^gpt-dv/')
+    #     pass
+    # else:
+    #     # print('not found')
+    #     write_plain_text('REPLACER_NOT_FOUND  /^gpt-3\.5-turbo(?!-instruct)(?!-base)|^gpt-4(?!-base)|^gpt-dv/')
+    #     found_replacer = False
+    # js = js.replace('/^gpt-3\.5-turbo(?!-instruct)(?!-base)|^gpt-4(?!-base)|^gpt-dv/', '/^.*$/')
+    # if (js.find('/^gpt-4[a-z]?-(?!vision)(?!base).*/') >= 0):
+    #     # print('found')
+    #     write_plain_text('REPLACER_FOUND  /^gpt-4[a-z]?-(?!vision)(?!base).*/')
+    #     pass
+    # else:
+    #     # print('not found')
+    #     write_plain_text('REPLACER_NOT_FOUND  /^gpt-4[a-z]?-(?!vision)(?!base).*/')
+    #     found_replacer = False
+    # if(found_replacer == False):
+    #     write_plain_text('Warning: Some text that needed to replace is not found in the current js file (because it has changed from origin one). The website might work normally, might not work. If it doesn\'t work, this may be a reason.')
+    #     print('Warning: Some text that needed to replace is not found in the current js file (because it has changed from origin one). The website might work normally, might not work. If it doesn\'t work, this may be a reason.')
+    # js = js.replace('/^gpt-4[a-z]?-(?!vision)(?!base).*/', '/^.*$/')
+    # js = js.replace('||2049', '||4097')
+    # js = js.replace('"/v1/chat/completions"', '"/v1/chat/completions/"+jtc_password')
     file_path = os.path.abspath(__file__)
+    file_path_full_js = os.path.dirname(file_path) + '/full.js'
     file_path = os.path.dirname(file_path) + '/append.js'
+    with open(file_path_full_js, 'r') as f:
+        full_js = f.read()
+    js = full_js
     with open(file_path, 'r') as f:
         tmp = f.read()
         js += tmp

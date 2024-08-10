@@ -57,3 +57,5 @@ function login() {
 }
 
 window.addEventListener('DOMContentLoaded', login);
+
+console.log('openai-playground: Use other openai-compatible API services in OpenAI Playground.\n\nGitHub: https://github.com/jtc1246/openai-playground')

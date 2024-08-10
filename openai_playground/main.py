@@ -32,14 +32,14 @@ DATA_DIR = ''
 
 def init():
     global JS_CONTENT
-    tmp = http(JS_URL, ToJson=False)
-    if(tmp['status'] < 0 or tmp['code'] != 200):
-        print('Failed to fetch JS file')
-        raise Exception('Failed to fetch JS file')
-    JS_CONTENT = tmp['text']
-    write_plain_text('JS file loaded successfully.')
+    # tmp = http(JS_URL, ToJson=False)
+    # if(tmp['status'] < 0 or tmp['code'] != 200):
+    #     print('Failed to fetch JS file')
+    #     raise Exception('Failed to fetch JS file')
+    # JS_CONTENT = tmp['text']
+    # write_plain_text('JS file loaded successfully.')
     # currently don't need to encode according model list, so just pre generate
-    JS_CONTENT = endode_js(JS_CONTENT)
+    JS_CONTENT = endode_js('')
 
 
 models = []
