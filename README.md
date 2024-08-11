@@ -9,6 +9,7 @@ It supports:
 - Add any openai-compatible API service.
 - In stream mode.
 - Chatting history storage and export.
+- Disable the terrible automatic conversion to json format by openai.
 
 This is a useful tool for those AI services that have awful playground experience.
 
