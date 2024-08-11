@@ -32,14 +32,24 @@ DATA_DIR = ''
 
 def init():
     global JS_CONTENT
-    # tmp = http(JS_URL, ToJson=False)
-    # if(tmp['status'] < 0 or tmp['code'] != 200):
-    #     print('Failed to fetch JS file')
-    #     raise Exception('Failed to fetch JS file')
-    # JS_CONTENT = tmp['text']
-    # write_plain_text('JS file loaded successfully.')
-    # currently don't need to encode according model list, so just pre generate
     JS_CONTENT = endode_js('')
+    debug_mode_only()
+
+def debug_mode_only():
+    if(DEBUG_MODE == False):
+        return
+    global JS_CONTENT
+    from _thread import start_new_thread
+    def update_js():
+        global JS_CONTENT
+        while True:
+            sleep(0.05)
+            JS_CONTENT = endode_js('')
+    start_new_thread(update_js, ())
+
+
+DEBUG_MODE = False
+# DEBUG_MODE = True
 
 
 models = []

@@ -59,3 +59,21 @@ function login() {
 window.addEventListener('DOMContentLoaded', login);
 
 console.log('openai-playground: Use other openai-compatible API services in OpenAI Playground.\n\nGitHub: https://github.com/jtc1246/openai-playground')
+
+
+function update_json_to_text(){
+    var buttons = document.querySelectorAll('button[aria-label="Format as text"]');
+    // console.log(buttons.length);
+    var l = buttons.length;
+    for (var i = 0; i < l; i++){
+        buttons[i].click();
+    }
+}
+
+function update_periondically(){
+    // setTimeout(update_periondically, 1);
+    requestAnimationFrame(update_periondically);
+    update_json_to_text();
+}
+
+update_periondically();
