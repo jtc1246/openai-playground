@@ -11,7 +11,7 @@ long_description = long_description.replace('(example.py)', ('(https://github.co
 
 setup(
     name='openai-playground',
-    version='1.1.1',
+    version='1.1.2',
     author='Tiancheng Jiao',
     author_email='jtc1246@outlook.com',
     url='https://github.com/jtc1246/openai-playground',
